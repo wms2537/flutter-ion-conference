@@ -28,7 +28,7 @@ class IonController with ChangeNotifier {
   connect(host) async {
     if (_biz == null || _sfu == null || _connector == null) {
       _connector =
-          IonBaseConnector('http://$host:5551', token: 'token123123123');
+          IonBaseConnector('https://$host:5551', token: 'token123123123');
       _biz = IonAppBiz(_connector!);
       _sfu = IonSDKSFU(_connector!);
       await _biz?.connect();
