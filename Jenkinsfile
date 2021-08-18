@@ -4,7 +4,7 @@ pipeline {
     stage('Build Images') {
       steps {
         script {
-          clientImage = docker.build(registry + 'client', './')
+          clientImage = docker.build(registry + 'client', '--build-arg ENABLED_MODULES="brotli" ./')
         }
 
       }
