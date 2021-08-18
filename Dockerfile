@@ -25,8 +25,8 @@ ENV PATH "$PATH:/flutter/flutter/bin"
 RUN flutter doctor
 WORKDIR /app
 COPY . .
-ARG BUILD_NUM
-RUN sed -i "s/DEBUG/$BUILD_NUM/" ./lib/env.dart
+# ARG BUILD_NUM
+# RUN sed -i "s/DEBUG/$BUILD_NUM/" ./lib/env.dart
 RUN flutter pub get
 RUN flutter build web --release
 

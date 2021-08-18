@@ -1,0 +1,18 @@
+version: '3'
+services:
+  nginx:
+    image: registry-intl.ap-southeast-1.aliyuncs.com/swmeng/flutter-ion-conference-client:${BUILD_NUMBER}
+    expose:
+      - 80
+    environment: 
+      VIRTUAL_HOST: conf.wmtech.cc
+      LETSENCRYPT_HOST: conf.wmtech.cc
+      LETSENCRYPT_EMAIL: swmeng@yes.my
+    restart: unless-stopped
+    container_name: flutter-ion-conference-nginx
+
+
+networks:
+  default:
+    external:
+      name: nginx-proxy
