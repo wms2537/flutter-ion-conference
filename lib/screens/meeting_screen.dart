@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_ion_conference/screens/chat_screen.dart';
+import 'package:flutter_ion_conference/screens/home_screen.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter_ion/flutter_ion.dart';
 import 'package:flutter_ion_conference/providers/ion.dart';
@@ -601,9 +602,11 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                 style: TextStyle(
                                                     color: Colors.red),
                                               ),
-                                              onPressed: () async {
-                                                await controller.close();
-                                                Navigator.of(context).pop();
+                                              onPressed: () {
+                                                controller.close();
+                                                Navigator.of(context)
+                                                    .popAndPushNamed(
+                                                        HomeScreen.routeName);
                                               },
                                             )
                                           ],

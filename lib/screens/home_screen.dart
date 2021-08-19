@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await Provider.of<IonController>(context, listen: false)
           .connect(_name!, _sid!);
 
-      Navigator.of(context).pushNamed(MeetingScreen.routeName);
+      Navigator.of(context).popAndPushNamed(MeetingScreen.routeName);
 
       setState(() {
         _isLoading = false;

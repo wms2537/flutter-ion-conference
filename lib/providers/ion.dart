@@ -27,7 +27,7 @@ class Participant {
   RTCVideoViewObjectFit _objectFit =
       RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
 
-  void initialize() async {
+  Future<void> initialize() async {
     await renderer.initialize();
     renderer.srcObject = mediaStream;
     if (!remote) {
@@ -56,9 +56,9 @@ class Participant {
     renderer.srcObject = null;
     if (!remote) {
       await (stream as LocalStream).unpublish();
-      await Future.wait(mediaStream.getTracks().map((element) async {
+      for (var element in mediaStream.getTracks()) {
         await element.stop();
-      }));
+      }
       await mediaStream.dispose();
     }
   }
@@ -177,11 +177,13 @@ class IonController with ChangeNotifier {
                 ..resolution = resolution
                 ..codec = codec);
           _sfu?.publish(_localStream);
-          _addParticipant(
-              Participant(_localStream.stream.id, _localStream, false)
-                ..initialize());
+          final participant =
+              Participant(_localStream.stream.id, _localStream, false);
+          await participant.initialize();
+          _addParticipant(participant);
+          print('Stream added');
         } catch (error) {
-          rethrow;
+          print(error);
         }
       }
     };
@@ -251,7 +253,8 @@ class IonController with ChangeNotifier {
     };
 
     _sfu?.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
-      if (track.kind == 'video') {
+      if (track.kind == 'video' &&
+          _participants.indexWhere((element) => element.id == stream.id) < 0) {
         _addParticipant(Participant(stream.id, stream, true)..initialize());
       }
     };
@@ -262,7 +265,7 @@ class IonController with ChangeNotifier {
     _biz?.join(sid: _sid!, uid: _uid, info: <String, String>{'name': _name!});
   }
 
-  Future<void> close() async {
+  void close() async {
     if (_connector == null && _biz == null && _sfu == null) {
       return;
     }
