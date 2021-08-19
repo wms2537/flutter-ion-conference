@@ -54,6 +54,7 @@ class Participant {
 
   Future<void> dispose() async {
     renderer.srcObject = null;
+    await renderer.dispose();
     if (!remote) {
       await (stream as LocalStream).unpublish();
       for (var element in mediaStream.getTracks()) {
@@ -116,6 +117,7 @@ class IonController with ChangeNotifier {
   final String _uid = const Uuid().v4();
   final List<Participant> _participants = [];
   final List<ChatMessage> _messages = [];
+  LocalStream? _localStream;
   bool _cameraOff = false;
   bool _microphoneOff = false;
   bool _speakerOn = true;
@@ -129,6 +131,7 @@ class IonController with ChangeNotifier {
   bool get microphoneOff => _microphoneOff;
   bool get speakerOn => _speakerOn;
   List<ChatMessage> get messages => [..._messages];
+  bool get isInit => !(_biz == null || _sfu == null || _sid == null);
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -148,39 +151,32 @@ class IonController with ChangeNotifier {
   }
 
   Future<void> connect(String name, String sid) async {
-    if (_biz == null || _sfu == null || _connector == null) {
-      _connector = IonBaseConnector('https://ion.wmtech.cc:5551',
-          token: 'token123123123');
-      _biz = IonAppBiz(_connector!);
-      _sfu = IonSDKSFU(_connector!);
-      _name = name;
-      _sid = sid;
-      await _biz?.connect();
-    }
-  }
+    _name = name;
+    _sid = sid;
 
-  join() async {
-    if (_biz == null || _sfu == null || _sid == null) {
-      throw 'Connection Uninitialised';
-    }
+    _connector =
+        IonBaseConnector('https://ion.wmtech.cc:5551', token: 'token123123123');
+    _biz = IonAppBiz(_connector!);
+    _sfu = IonSDKSFU(_connector!);
 
     _biz?.onJoin = (bool success, String reason) async {
       if (success) {
         try {
-          await _sfu?.connect();
-          await _sfu?.join(_sid!, _uid);
+          if (localVideo != null) {
+            return;
+          }
+          await _sfu!.join(_sid!, _uid);
           var resolution = _prefs.getString('resolution') ?? 'hd';
           var codec = _prefs.getString('codec') ?? 'vp8';
-          final _localStream = await LocalStream.getUserMedia(
+          _localStream = await LocalStream.getUserMedia(
               constraints: Constraints.defaults
                 ..simulcast = false
                 ..resolution = resolution
                 ..codec = codec);
-          _sfu?.publish(_localStream);
-          final participant =
-              Participant(_localStream.stream.id, _localStream, false);
-          await participant.initialize();
-          _addParticipant(participant);
+          _sfu!.publish(_localStream!);
+          _addParticipant(
+              Participant(_localStream!.stream.id, _localStream!, false)
+                ..initialize());
           print('Stream added');
         } catch (error) {
           print(error);
@@ -252,35 +248,33 @@ class IonController with ChangeNotifier {
       notifyListeners();
     };
 
-    _sfu?.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
+    _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video' &&
           _participants.indexWhere((element) => element.id == stream.id) < 0) {
         _addParticipant(Participant(stream.id, stream, true)..initialize());
       }
     };
 
-    _sfu?.onspeaker = (Map<String, dynamic> list) {
+    _sfu!.onspeaker = (Map<String, dynamic> list) {
       print('onspeaker: $list');
     };
+
+    await _biz!.connect();
+    await _sfu!.connect();
     _biz?.join(sid: _sid!, uid: _uid, info: <String, String>{'name': _name!});
   }
 
-  void close() async {
-    if (_connector == null && _biz == null && _sfu == null) {
-      return;
-    }
+  Future<void> close() async {
     for (var item in _participants) {
       try {
+        _sfu!.close();
         await item.dispose();
-      } catch (error) {
-        rethrow;
-      }
+      } catch (error) {}
     }
     _participants.clear();
-    _connector?.close();
+    _biz?.leave(_uid);
+    _biz?.close();
     _biz = null;
-    _sfu = null;
-    _connector = null;
   }
 
   _removeParticipant(String mid) {

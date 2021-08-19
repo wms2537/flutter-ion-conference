@@ -85,243 +85,12 @@ class _MeetingScreenState extends State<MeetingScreen> {
   final double localWidth = 114.0;
   final double localHeight = 72.0;
 
-  @override
-  void initState() {
-    super.initState();
-    Provider.of<IonController>(context, listen: false).join();
-    // if (biz == null || sfu == null) {
-    //   Navigator.of(context).pop();
-    //   return;
-    // }
-
-    // biz.onJoin = (bool success, String reason) async {
-    //   _showSnackBar(":::Join success:::");
-    //   if (success) {
-    //     try {
-    //       await sfu.connect();
-    //       await sfu.join(room, uid);
-    //       var resolution = prefs.getString('resolution') ?? 'hd';
-    //       var codec = prefs.getString('codec') ?? 'vp8';
-    //       final _localStream = await LocalStream.getUserMedia(
-    //           constraints: Constraints.defaults
-    //             ..simulcast = false
-    //             ..resolution = resolution
-    //             ..codec = codec);
-    //       sfu.publish(_localStream);
-    //       _addParticipant(
-    //           Participant(_localStream.stream.id, _localStream, false)
-    //             ..initialize());
-    //     } catch (error) {
-    //       _showSnackBar('publish err ${error.toString()}');
-    //     }
-    //   }
-    // };
-
-    // biz.onLeave = (String reason) {
-    //   _showSnackBar(":::Leave success:::");
-    // };
-
-    // biz.onPeerEvent = (PeerEvent event) {
-    //   var name = event.peer.info['name'];
-    //   var state = '';
-    //   switch (event.state) {
-    //     case PeerState.NONE:
-    //       break;
-    //     case PeerState.JOIN:
-    //       state = 'join';
-    //       break;
-    //     case PeerState.UPDATE:
-    //       state = 'upate';
-    //       break;
-    //     case PeerState.LEAVE:
-    //       state = 'leave';
-    //       break;
-    //   }
-    //   _showSnackBar(":::Peer [${event.peer.uid}:$name] $state:::");
-    // };
-
-    // biz.onStreamEvent = (StreamEvent event) async {
-    //   switch (event.state) {
-    //     case StreamState.NONE:
-    //       break;
-    //     case StreamState.ADD:
-    //       if (event.streams.isNotEmpty) {
-    //         var mid = event.streams[0].id;
-    //         _showSnackBar(":::stream-add [$mid]:::");
-    //       }
-    //       break;
-    //     case StreamState.REMOVE:
-    //       if (event.streams.isNotEmpty) {
-    //         var mid = event.streams[0].id;
-    //         _showSnackBar(":::stream-remove [$mid]:::");
-    //         _removeParticipant(mid);
-    //       }
-    //       break;
-    //   }
-    // };
-
-    // sfu.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
-    //   if (track.kind == 'video') {
-    //     _addParticipant(Participant(stream.id, stream, true)..initialize());
-    //   }
-    // };
-
-    // sfu.onspeaker = (Map<String, dynamic> list) {
-    //   _showSnackBar('onspeaker: $list');
-    // };
-
-    // name = prefs.getString('display_name') ?? 'Guest';
-    // room = prefs.getString('room') ?? 'room1';
-    // Provider.of<IonController>(context, listen: false).join(room, name);
-  }
-
-  // _removeParticipant(String mid) {
-  //   setState(() {
-  //     participants.removeWhere((element) => element.mid == mid);
-  //   });
-  // }
-
-  // _addParticipant(Participant participant) {
-  //   setState(() {
-  //     participants.add(participant);
-  //   });
-  // }
-
-  // _swapParticipant(adapter) {
-  //   final index =
-  //       participants.indexWhere((element) => element.mid == adapter.mid);
-  //   if (index != -1) {
-  //     setState(() {
-  //       final temp = participants.elementAt(index);
-  //       participants[0] = participants[index];
-  //       participants[index] = temp;
-  //     });
-  //   }
-  // }
-
-  // //Switch speaker/earpiece
-  // _switchSpeaker() {
-  //   if (_localVideo != null) {
-  //     _speakerOn = !_speakerOn;
-  //     MediaStreamTrack audioTrack =
-  //         _localVideo!.mediaStream.getAudioTracks()[0];
-  //     audioTrack.enableSpeakerphone(_speakerOn);
-  //     _showSnackBar(
-  //         ":::Switch to " + (_speakerOn ? "speaker" : "earpiece") + ":::");
-  //   }
-  // }
-
-  // Participant? get _localVideo {
-  //   final index = participants.indexWhere((value) => !value.remote);
-  //   return index < 0 ? null : participants[index];
-  // }
-
-  // List<Participant> get _remoteVideos {
-  //   return participants.takeWhile((value) => value.remote).toList();
-  // }
-
-  // //Switch local camera
-  // _switchCamera() {
-  //   if (_localVideo != null &&
-  //       _localVideo!.mediaStream.getVideoTracks().isNotEmpty) {
-  //     final track = _localVideo?.mediaStream.getVideoTracks()[0];
-  //     Helper.switchCamera(track!);
-  //   } else {
-  //     _showSnackBar(":::Unable to switch the camera:::");
-  //   }
-  // }
-
-  // //Open or close local video
-  // _turnCamera() {
-  //   if (_localVideo != null &&
-  //       _localVideo!.mediaStream.getVideoTracks().isNotEmpty) {
-  //     var muted = !_cameraOff;
-  //     _cameraOff = muted;
-  //     _localVideo?.mediaStream.getVideoTracks()[0].enabled = !muted;
-  //     setState(() {});
-  //   } else {
-  //     _showSnackBar(":::Unable to operate the camera:::");
-  //   }
-  // }
-
-  // //Open or close local audio
-  // _turnMicrophone() {
-  //   if (_localVideo != null &&
-  //       _localVideo!.mediaStream.getAudioTracks().isNotEmpty) {
-  //     var muted = !_microphoneOff;
-  //     _microphoneOff = muted;
-  //     _localVideo?.mediaStream.getAudioTracks()[0].enabled = !muted;
-  //     _showSnackBar(":::The microphone is ${muted ? 'muted' : 'unmuted'}:::");
-  //     setState(() {});
-  //   } else {}
-  // }
-
-  // _cleanUp() async {
-  //   for (var item in participants) {
-  //     try {
-  //       await item.dispose();
-  //     } catch (error) {
-  //       _showSnackBar('clenup err ${error.toString()}');
-  //     }
-  //   }
-  //   participants.clear();
-  //   await Provider.of<IonController>(context, listen: false).close();
-  // }
-
-  _showSnackBar(String message) {
-    print(message);
-    /*
-    _scaffoldkey.currentState!.showSnackBar(SnackBar(
-      content: Container(
-        //color: Colors.white,
-        decoration: BoxDecoration(
-            color: Colors.black38,
-            border: Border.all(width: 2.0, color: Colors.black),
-            borderRadius: BorderRadius.circular(20)),
-        margin: EdgeInsets.fromLTRB(45, 0, 45, 45),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(message,
-              style: TextStyle(color: Colors.white),
-              textAlign: TextAlign.center),
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      behavior: SnackBarBehavior.floating,
-      duration: Duration(
-        milliseconds: 1000,
-      ),
-    ));*/
-  }
-
-  // _hangUp() {
-
-  // }
-
   BoxSize localVideoBoxSize(Orientation orientation) {
     return BoxSize(
       width: (orientation == Orientation.portrait) ? localHeight : localWidth,
       height: (orientation == Orientation.portrait) ? localWidth : localHeight,
     );
   }
-
-  // Widget _buildMajorVideo() {
-
-  //     return
-  // }
-
-  // Widget _buildVideoList() {
-
-  //     return ;
-  // }
-
-  // Widget _buildLocalVideo(Orientation orientation) {
-  //   return ;
-  // }
-
-  // Widget _buildMinorVideo(Participant participant) {
-  //   return ;
-  // }
 
   Widget _buildLoading() {
     return Center(
@@ -347,10 +116,6 @@ class _MeetingScreenState extends State<MeetingScreen> {
       ),
     );
   }
-
-  // List<Widget> _buildTools() {
-  //   return
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -602,8 +367,8 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                 style: TextStyle(
                                                     color: Colors.red),
                                               ),
-                                              onPressed: () {
-                                                controller.close();
+                                              onPressed: () async {
+                                                await controller.close();
                                                 Navigator.of(context)
                                                     .popAndPushNamed(
                                                         HomeScreen.routeName);
