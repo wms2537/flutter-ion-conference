@@ -85,58 +85,51 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  late SharedPreferences prefs;
-  late String _uid;
-  late String _name;
-  late String _sid;
-  final _historyMessage = [];
-  final String _displayName = "";
   final TextEditingController textEditingController = TextEditingController();
-  final List<ChatMessage> _messages = [];
   FocusNode textFocusNode = FocusNode();
-  @override
-  void initState() {
-    prefs = Provider.of<IonController>(context, listen: false).prefs();
-    final biz = Provider.of<IonController>(context, listen: false).biz;
-    _uid = Provider.of<IonController>(context, listen: false).uid;
-    _name = Provider.of<IonController>(context, listen: false).name;
-    _sid = Provider.of<IonController>(context, listen: false).sid;
-    for (int i = 0; i < _historyMessage.length; i++) {
-      var hisMsg = _historyMessage[i];
-      ChatMessage message = ChatMessage(
-        hisMsg['uid'],
-        hisMsg['text'],
-        hisMsg['name'],
-        DateFormat.jms().format(DateTime.now()),
-        isMe: hisMsg['uid'] == _uid ? true : false,
-      );
-      _messages.insert(0, message);
-    }
-    biz?.onMessage = _messageProcess;
-    super.initState();
-  }
+  // @override
+  // void initState() {
+  //   prefs = Provider.of<IonController>(context, listen: false).prefs();
+  //   final biz = Provider.of<IonController>(context, listen: false).biz;
+  //   _uid = Provider.of<IonController>(context, listen: false).uid;
+  //   _name = Provider.of<IonController>(context, listen: false).name;
+  //   _sid = Provider.of<IonController>(context, listen: false).sid;
+  //   for (int i = 0; i < _historyMessage.length; i++) {
+  //     var hisMsg = _historyMessage[i];
+  //     ChatMessage message = ChatMessage(
+  //       hisMsg['uid'],
+  //       hisMsg['text'],
+  //       hisMsg['name'],
+  //       DateFormat.jms().format(DateTime.now()),
+  //       isMe: hisMsg['uid'] == _uid ? true : false,
+  //     );
+  //     _messages.insert(0, message);
+  //   }
+  //   biz?.onMessage = _messageProcess;
+  //   super.initState();
+  // }
 
-  void _messageProcess(Message msg) async {
-    if (msg.from == _uid) {
-      return;
-    }
-    var info = msg.data;
-    var sender = info['name'];
-    var text = info['text'];
-    var uid = info['uid'] as String;
-    //print('message: sender = ' + sender + ', text = ' + text);
-    ChatMessage message = ChatMessage(
-      uid,
-      text,
-      sender,
-      DateFormat.jms().format(DateTime.now()),
-      isMe: uid == _uid,
-    );
+  // void _messageProcess(Message msg) async {
+  //   if (msg.from == _uid) {
+  //     return;
+  //   }
+  //   var info = msg.data;
+  //   var sender = info['name'];
+  //   var text = info['text'];
+  //   var uid = info['uid'] as String;
+  //   //print('message: sender = ' + sender + ', text = ' + text);
+  //   ChatMessage message = ChatMessage(
+  //     uid,
+  //     text,
+  //     sender,
+  //     DateFormat.jms().format(DateTime.now()),
+  //     isMe: uid == _uid,
+  //   );
 
-    setState(() {
-      _messages.insert(0, message);
-    });
-  }
+  //   setState(() {
+  //     _messages.insert(0, message);
+  //   });
+  // }
 
   void _handleSubmit(String text) {
     textEditingController.clear();
@@ -145,25 +138,22 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    var info = {
-      'uid': _uid,
-      'name': _name,
-      'text': text,
-    };
-    Provider.of<IonController>(context, listen: false)
-        .biz
-        ?.message(_uid, _sid, info);
-
-    var msg = ChatMessage(
-      _uid,
-      text,
-      _displayName,
-      DateFormat.jms().format(DateTime.now()),
-      isMe: true,
-    );
-    setState(() {
-      _messages.insert(0, msg);
-    });
+    // var info = {
+    //   'uid': _uid,
+    //   'name': _name,
+    //   'text': text,
+    // };
+    Provider.of<IonController>(context, listen: false).sendMessage(text);
+    // var msg = ChatMessage(
+    //   _uid,
+    //   text,
+    //   _displayName,
+    //   DateFormat.jms().format(DateTime.now()),
+    //   isMe: true,
+    // );
+    // setState(() {
+    //   _messages.insert(0, msg);
+    // });
   }
 
   Widget textComposerWidget() {
@@ -204,14 +194,16 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: <Widget>[
-          Flexible(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8.0),
-              reverse: true,
-              itemBuilder: (_, int index) => _messages[index],
-              itemCount: _messages.length,
-            ),
-          ),
+          Consumer<IonController>(builder: (context, controller, _) {
+            return Flexible(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(8.0),
+                reverse: true,
+                itemBuilder: (_, int index) => controller.messages[index],
+                itemCount: controller.messages.length,
+              ),
+            );
+          }),
           const Divider(
             height: 1.0,
           ),

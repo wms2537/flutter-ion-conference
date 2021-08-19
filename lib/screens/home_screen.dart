@@ -16,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _formKey = GlobalKey<FormState>();
-  String? _server;
+  String? _name;
   String? _sid;
   bool _isLoading = false;
 
@@ -30,13 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
     });
     try {
-      final res = await Provider.of<IonController>(context, listen: false)
-          .handleJoin(_server!, _sid!);
-      if (res) {
-        Navigator.of(context).pushNamed(MeetingScreen.routeName);
-      } else {
-        showErrorDialog('Failed to join.', context);
-      }
+      await Provider.of<IonController>(context, listen: false)
+          .connect(_name!, _sid!);
+
+      Navigator.of(context).pushNamed(MeetingScreen.routeName);
+
       setState(() {
         _isLoading = false;
       });
@@ -60,17 +58,17 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(
               width: 260.0,
               child: TextFormField(
-                  initialValue: '127.0.0.1',
+                  initialValue: 'Guest',
                   keyboardType: TextInputType.text,
                   textAlign: TextAlign.center,
-                  validator: Validator.validateRequired,
+                  validator: Validator.validateAlphanumeric,
                   decoration: const InputDecoration(
                       contentPadding: EdgeInsets.all(10.0),
                       border: UnderlineInputBorder(
                           borderSide: BorderSide(color: Colors.black12)),
-                      hintText: 'Enter Ion Server.'),
+                      hintText: 'Enter Name.'),
                   onSaved: (value) {
-                    _server = value;
+                    _name = value;
                   }),
             ),
             SizedBox(
