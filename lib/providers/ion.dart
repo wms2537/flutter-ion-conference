@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 class Participant {
-  Participant(this.mid, this.stream, this.remote);
+  Participant._internal(this.mid, this.stream, this.remote);
   String mid;
   bool remote;
   Object stream;
@@ -23,20 +23,26 @@ class Participant {
 
   String get title => (remote ? 'Remote' : 'Local') + ' ' + id.substring(0, 8);
 
-  RTCVideoRenderer renderer = RTCVideoRenderer();
+  RTCVideoRenderer? renderer;
   RTCVideoViewObjectFit _objectFit =
       RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
 
-  Future<void> initialize() async {
-    await renderer.initialize();
-    renderer.srcObject = mediaStream;
+  static Future<Participant> create(
+      String mid, Object stream, bool local) async {
+    var renderer = Participant._internal(mid, stream, local);
+    await renderer.setupSrcObject();
+    return renderer;
+  }
+
+  setupSrcObject() async {
+    if (renderer == null) {
+      renderer = RTCVideoRenderer();
+      await renderer?.initialize();
+    }
+    renderer?.srcObject = mediaStream;
     if (!remote) {
       _objectFit = RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
     }
-    renderer.onResize = () {
-      // print(
-      //     'onResize [${id.substring(0, 8)}] ${renderer.videoWidth} x ${renderer.videoHeight}');
-    };
   }
 
   switchObjFit() {
@@ -53,8 +59,8 @@ class Participant {
   }
 
   Future<void> dispose() async {
-    renderer.srcObject = null;
-    await renderer.dispose();
+    renderer?.srcObject = null;
+    await renderer?.dispose();
   }
 
   void preferLayer(Layer layer) {
@@ -164,9 +170,8 @@ class IonController with ChangeNotifier {
                 ..resolution = resolution
                 ..codec = codec);
           _sfu!.publish(_localStream!);
-          _addParticipant(
-              Participant(_localStream!.stream.id, _localStream!, false)
-                ..initialize());
+          _addParticipant(await Participant.create(
+              _localStream!.stream.id, _localStream!, false));
           print('Stream added');
         } catch (error) {
           print(error);
@@ -241,7 +246,7 @@ class IonController with ChangeNotifier {
     _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video' &&
           _participants.indexWhere((element) => element.id == stream.id) < 0) {
-        _addParticipant(Participant(stream.id, stream, true)..initialize());
+        _addParticipant(await Participant.create(stream.id, stream, true));
       }
     };
 

@@ -146,7 +146,8 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                               .switchObjFit();
                                         },
                                         child: RTCVideoView(
-                                            controller.remoteVideos[0].renderer,
+                                            controller
+                                                .remoteVideos[0].renderer!,
                                             objectFit: RTCVideoViewObjectFit
                                                 .RTCVideoViewObjectFitContain)),
                               ),
@@ -180,7 +181,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                               },
                                               child: RTCVideoView(
                                                   controller
-                                                      .localVideo!.renderer,
+                                                      .localVideo!.renderer!,
                                                   objectFit: controller
                                                       .localVideo!.objFit)),
                                         )),
@@ -222,7 +223,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                   onDoubleTap: () => participant
                                                       .switchObjFit(),
                                                   child: RTCVideoView(
-                                                      participant.renderer,
+                                                      participant.renderer!,
                                                       objectFit:
                                                           participant.objFit)),
                                             ),
