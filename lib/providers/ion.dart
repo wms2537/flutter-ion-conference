@@ -12,14 +12,12 @@ class Participant {
   Participant._internal(this.mid, this.stream, this.remote);
   String mid;
   bool remote;
-  Object stream;
   double? bitrate;
   String get id => remote
       ? (stream as RemoteStream).stream.id
       : (stream as LocalStream).stream.id;
 
-  MediaStream get mediaStream =>
-      remote ? (stream as RemoteStream).stream : (stream as LocalStream).stream;
+  MediaStream stream;
 
   String get title => (remote ? 'Remote' : 'Local') + ' ' + id.substring(0, 8);
 
@@ -28,8 +26,8 @@ class Participant {
       RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
 
   static Future<Participant> create(
-      String mid, Object stream, bool local) async {
-    var renderer = Participant._internal(mid, stream, local);
+      String mid, MediaStream stream, bool remote) async {
+    var renderer = Participant._internal(mid, stream, remote);
     await renderer.setupSrcObject();
     return renderer;
   }
@@ -39,7 +37,7 @@ class Participant {
       renderer = RTCVideoRenderer();
       await renderer?.initialize();
     }
-    renderer?.srcObject = mediaStream;
+    renderer?.srcObject = stream;
     if (!remote) {
       _objectFit = RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
     }
@@ -59,25 +57,11 @@ class Participant {
   }
 
   Future<void> dispose() async {
-    renderer?.srcObject = null;
-    await renderer?.dispose();
-  }
-
-  void preferLayer(Layer layer) {
-    if (remote) {
-      (stream as RemoteStream).preferLayer?.call(layer);
-    }
-  }
-
-  void mute(String kind) {
-    if (remote) {
-      (stream as RemoteStream).mute?.call(kind);
-    }
-  }
-
-  void unmute(String kind) {
-    if (remote) {
-      (stream as RemoteStream).unmute?.call(kind);
+    if (renderer != null) {
+      print('dispose for texture id ' + renderer!.textureId.toString());
+      renderer?.srcObject = null;
+      await renderer?.dispose();
+      renderer = null;
     }
   }
 
@@ -171,7 +155,7 @@ class IonController with ChangeNotifier {
                 ..codec = codec);
           _sfu!.publish(_localStream!);
           _addParticipant(await Participant.create(
-              _localStream!.stream.id, _localStream!, false));
+              _localStream!.stream.id, _localStream!.stream, false));
           print('Stream added');
         } catch (error) {
           print(error);
@@ -246,7 +230,8 @@ class IonController with ChangeNotifier {
     _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video' &&
           _participants.indexWhere((element) => element.id == stream.id) < 0) {
-        _addParticipant(await Participant.create(stream.id, stream, true));
+        _addParticipant(
+            await Participant.create(stream.id, stream.stream, true));
       }
     };
 
@@ -296,7 +281,7 @@ class IonController with ChangeNotifier {
   switchSpeaker() {
     if (localVideo != null) {
       _speakerOn = !_speakerOn;
-      MediaStreamTrack audioTrack = localVideo!.mediaStream.getAudioTracks()[0];
+      MediaStreamTrack audioTrack = localVideo!.stream.getAudioTracks()[0];
       audioTrack.enableSpeakerphone(_speakerOn);
       print(":::Switch to " + (_speakerOn ? "speaker" : "earpiece") + ":::");
     }
@@ -304,9 +289,8 @@ class IonController with ChangeNotifier {
 
   //Switch local camera
   switchCamera() {
-    if (localVideo != null &&
-        localVideo!.mediaStream.getVideoTracks().isNotEmpty) {
-      final track = localVideo?.mediaStream.getVideoTracks()[0];
+    if (localVideo != null && localVideo!.stream.getVideoTracks().isNotEmpty) {
+      final track = localVideo?.stream.getVideoTracks()[0];
       Helper.switchCamera(track!);
     } else {
       print(":::Unable to switch the camera:::");
@@ -315,11 +299,10 @@ class IonController with ChangeNotifier {
 
   //Open or close local video
   turnCamera() {
-    if (localVideo != null &&
-        localVideo!.mediaStream.getVideoTracks().isNotEmpty) {
+    if (localVideo != null && localVideo!.stream.getVideoTracks().isNotEmpty) {
       var muted = !_cameraOff;
       _cameraOff = muted;
-      localVideo?.mediaStream.getVideoTracks()[0].enabled = !muted;
+      localVideo?.stream.getVideoTracks()[0].enabled = !muted;
       // notifyListeners();
     } else {
       print(":::Unable to operate the camera:::");
@@ -328,11 +311,10 @@ class IonController with ChangeNotifier {
 
   //Open or close local audio
   turnMicrophone() {
-    if (localVideo != null &&
-        localVideo!.mediaStream.getAudioTracks().isNotEmpty) {
+    if (localVideo != null && localVideo!.stream.getAudioTracks().isNotEmpty) {
       var muted = !_microphoneOff;
       _microphoneOff = muted;
-      localVideo?.mediaStream.getAudioTracks()[0].enabled = !muted;
+      localVideo?.stream.getAudioTracks()[0].enabled = !muted;
       print(":::The microphone is ${muted ? 'muted' : 'unmuted'}:::");
       // setState(() {});
     } else {}
