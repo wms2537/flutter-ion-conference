@@ -55,13 +55,6 @@ class Participant {
   Future<void> dispose() async {
     renderer.srcObject = null;
     await renderer.dispose();
-    if (!remote) {
-      await (stream as LocalStream).unpublish();
-      for (var element in mediaStream.getTracks()) {
-        await element.stop();
-      }
-      await mediaStream.dispose();
-    }
   }
 
   void preferLayer(Layer layer) {
@@ -162,10 +155,7 @@ class IonController with ChangeNotifier {
     _biz?.onJoin = (bool success, String reason) async {
       if (success) {
         try {
-          if (localVideo != null) {
-            return;
-          }
-          await _sfu!.join(_sid!, _uid);
+          await _sfu!.join(_sid!, _name!);
           var resolution = _prefs.getString('resolution') ?? 'hd';
           var codec = _prefs.getString('codec') ?? 'vp8';
           _localStream = await LocalStream.getUserMedia(
