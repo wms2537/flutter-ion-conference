@@ -13,13 +13,10 @@ class Participant {
   String mid;
   bool remote;
   double? bitrate;
-  String get id => remote
-      ? (stream as RemoteStream).stream.id
-      : (stream as LocalStream).stream.id;
 
   MediaStream stream;
 
-  String get title => (remote ? 'Remote' : 'Local') + ' ' + id.substring(0, 8);
+  // String get title => (remote ? 'Remote' : 'Local') + ' ' + id.substring(0, 8);
 
   RTCVideoRenderer? renderer;
   RTCVideoViewObjectFit _objectFit =
@@ -106,10 +103,6 @@ class IonController with ChangeNotifier {
   bool _speakerOn = true;
 
   String? get sid => _sid;
-  // String get uid => _uid;
-  // String? get name => _name;
-  // IonAppBiz? get biz => _biz;
-  // IonSDKSFU? get sfu => _sfu;
   bool get cameraOff => _cameraOff;
   bool get microphoneOff => _microphoneOff;
   bool get speakerOn => _speakerOn;
@@ -137,8 +130,7 @@ class IonController with ChangeNotifier {
     _name = name;
     _sid = sid;
 
-    _connector =
-        IonBaseConnector('https://ion.wmtech.cc:5551', token: 'token123123123');
+    _connector = IonBaseConnector('https://ion.wmtech.cc:5551');
     _biz = IonAppBiz(_connector!);
     _sfu = IonSDKSFU(_connector!);
 
@@ -229,7 +221,7 @@ class IonController with ChangeNotifier {
 
     _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video' &&
-          _participants.indexWhere((element) => element.id == stream.id) < 0) {
+          _participants.indexWhere((element) => element.mid == stream.id) < 0) {
         _addParticipant(
             await Participant.create(stream.id, stream.stream, true));
       }
