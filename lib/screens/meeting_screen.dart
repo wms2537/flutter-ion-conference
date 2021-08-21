@@ -371,7 +371,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                               onPressed: () async {
                                                 await controller.close();
                                                 Navigator.of(context)
-                                                    .popAndPushNamed(
+                                                    .pushReplacementNamed(
                                                         HomeScreen.routeName);
                                               },
                                             )

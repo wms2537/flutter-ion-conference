@@ -34,6 +34,7 @@ class Participant {
       renderer = RTCVideoRenderer();
       await renderer?.initialize();
     }
+    print(stream);
     renderer?.srcObject = stream;
     if (!remote) {
       _objectFit = RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
@@ -53,7 +54,7 @@ class Participant {
     _objectFit = objectFit;
   }
 
-  Future<void> dispose() async {
+  dispose() async {
     if (renderer != null) {
       print('dispose for texture id ' + renderer!.textureId.toString());
       renderer?.srcObject = null;
@@ -145,7 +146,7 @@ class IonController with ChangeNotifier {
                 ..simulcast = false
                 ..resolution = resolution
                 ..codec = codec);
-          _sfu!.publish(_localStream!);
+          await _sfu!.publish(_localStream!);
           _addParticipant(await Participant.create(
               _localStream!.stream.id, _localStream!.stream, false));
           print('Stream added');
@@ -238,9 +239,10 @@ class IonController with ChangeNotifier {
 
   Future<void> close() async {
     for (var item in _participants) {
+      var stream = item.stream;
       try {
         _sfu!.close();
-        await item.dispose();
+        await stream.dispose();
       } catch (error) {}
     }
     _participants.clear();
