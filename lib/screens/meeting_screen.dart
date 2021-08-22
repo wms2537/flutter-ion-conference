@@ -350,8 +350,8 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                       Icons.phone_disabled,
                                       color: Colors.red,
                                     ),
-                                    onPressed: () {
-                                      showDialog(
+                                    onPressed: () async {
+                                      final res = await showDialog(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
                                           title: const Text("Hangup"),
@@ -360,7 +360,10 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                           actions: <Widget>[
                                             TextButton(
                                               child: const Text("Cancel"),
-                                              onPressed: () {},
+                                              onPressed: () {
+                                                Navigator.of(ctx)
+                                                    .pop();
+                                              },
                                             ),
                                             TextButton(
                                               child: const Text(
@@ -370,14 +373,16 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                               ),
                                               onPressed: () async {
                                                 await controller.close();
-                                                Navigator.of(context)
-                                                    .pushReplacementNamed(
-                                                        HomeScreen.routeName);
+                                                Navigator.of(ctx)
+                                                    .pop(true);
                                               },
                                             )
                                           ],
                                         ),
                                       );
+                                      if(res == true){
+                                        Navigator.of(context).pop();
+                                      }
                                     },
                                   ),
                                 ),

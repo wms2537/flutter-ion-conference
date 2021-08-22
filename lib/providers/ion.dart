@@ -237,15 +237,13 @@ class IonController with ChangeNotifier {
   }
 
   Future<void> close() async {
-    if (_participants.isNotEmpty) {
-      for (var item in _participants) {
+    await Future.wait(_participants.map((item) async {
         var stream = item.stream;
         try {
           _sfu!.close();
           await stream.dispose();
         } catch (error) {}
-      }
-    }
+      }));
     _participants.clear();
     _biz?.leave(_uid);
     _biz?.close();
