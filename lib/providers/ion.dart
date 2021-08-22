@@ -221,8 +221,7 @@ class IonController with ChangeNotifier {
     };
 
     _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
-      if (track.kind == 'video' &&
-          _participants.indexWhere((element) => element.mid == stream.id) < 0) {
+      if (track.kind == 'video') {
         _addParticipant(
             await Participant.create(stream.id, stream.stream, true));
       }
@@ -238,12 +237,14 @@ class IonController with ChangeNotifier {
   }
 
   Future<void> close() async {
-    for (var item in _participants) {
-      var stream = item.stream;
-      try {
-        _sfu!.close();
-        await stream.dispose();
-      } catch (error) {}
+    if (_participants.isNotEmpty) {
+      for (var item in _participants) {
+        var stream = item.stream;
+        try {
+          _sfu!.close();
+          await stream.dispose();
+        } catch (error) {}
+      }
     }
     _participants.clear();
     _biz?.leave(_uid);
