@@ -102,7 +102,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         value: item['value'],
                         title: Text(item['name']),
                         groupValue: value,
-                        onChanged: (value) => onValueChanged(value!),
+                        onChanged: (value) {
+                          setState(() {
+                            onValueChanged(value!);
+                          });
+                        },
                       ),
                     ))
                 .toList()));

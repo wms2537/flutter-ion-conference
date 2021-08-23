@@ -154,7 +154,7 @@ class IonController with ChangeNotifier {
           var codec = _prefs.getString('codec') ?? 'vp8';
           _localStream = await LocalStream.getUserMedia(
               constraints: Constraints.defaults
-                ..simulcast = true
+                ..simulcast = false
                 ..resolution = resolution
                 ..codec = codec);
           _sfu!.publish(_localStream!);
@@ -267,6 +267,7 @@ class IonController with ChangeNotifier {
       final temp = _participants.elementAt(index);
       _participants[index] = _participants[0];
       _participants[0] = temp;
+      notifyListeners();
     }
   }
 
