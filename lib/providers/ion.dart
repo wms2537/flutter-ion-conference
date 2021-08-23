@@ -18,7 +18,8 @@ class Participant {
 
   // String get title => (remote ? 'Remote' : 'Local') + ' ' + id.substring(0, 8);
 
-  RTCVideoRenderer? renderer;
+  RTCVideoRenderer? _renderer;
+  RTCVideoRenderer? get rtcRenderer => _renderer;
   RTCVideoViewObjectFit _objectFit =
       RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
 
@@ -30,12 +31,12 @@ class Participant {
   }
 
   setupSrcObject() async {
-    if (renderer == null) {
-      renderer = RTCVideoRenderer();
-      await renderer?.initialize();
+    if (_renderer == null) {
+      _renderer = RTCVideoRenderer();
+      await _renderer?.initialize();
     }
     print(stream);
-    renderer?.srcObject = stream;
+    _renderer?.srcObject = stream;
     if (!remote) {
       _objectFit = RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
     }
@@ -55,11 +56,11 @@ class Participant {
   }
 
   dispose() async {
-    if (renderer != null) {
-      print('dispose for texture id ' + renderer!.textureId.toString());
-      renderer?.srcObject = null;
-      await renderer?.dispose();
-      renderer = null;
+    if (_renderer != null) {
+      print('dispose for texture id ' + _renderer!.textureId.toString());
+      _renderer?.srcObject = null;
+      await _renderer?.dispose();
+      _renderer = null;
     }
   }
 
@@ -135,6 +136,16 @@ class IonController with ChangeNotifier {
     _biz = IonAppBiz(_connector!);
     _sfu = IonSDKSFU(_connector!);
 
+    _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
+      if (track.kind == 'video') {
+        _addParticipant(
+            await Participant.create(stream.id, stream.stream, true));
+      }
+    };
+
+    _sfu!.onspeaker = (Map<String, dynamic> list) {
+      print('onspeaker: $list');
+    };
     _biz?.onJoin = (bool success, String reason) async {
       if (success) {
         try {
@@ -143,10 +154,10 @@ class IonController with ChangeNotifier {
           var codec = _prefs.getString('codec') ?? 'vp8';
           _localStream = await LocalStream.getUserMedia(
               constraints: Constraints.defaults
-                ..simulcast = false
+                ..simulcast = true
                 ..resolution = resolution
                 ..codec = codec);
-          await _sfu!.publish(_localStream!);
+          _sfu!.publish(_localStream!);
           _addParticipant(await Participant.create(
               _localStream!.stream.id, _localStream!.stream, false));
           print('Stream added');
@@ -220,17 +231,6 @@ class IonController with ChangeNotifier {
       notifyListeners();
     };
 
-    _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
-      if (track.kind == 'video') {
-        _addParticipant(
-            await Participant.create(stream.id, stream.stream, true));
-      }
-    };
-
-    _sfu!.onspeaker = (Map<String, dynamic> list) {
-      print('onspeaker: $list');
-    };
-
     await _biz!.connect();
     await _sfu!.connect();
     _biz?.join(sid: _sid!, uid: _uid, info: <String, String>{'name': _name!});
@@ -238,12 +238,12 @@ class IonController with ChangeNotifier {
 
   Future<void> close() async {
     await Future.wait(_participants.map((item) async {
-        var stream = item.stream;
-        try {
-          _sfu!.close();
-          await stream.dispose();
-        } catch (error) {}
-      }));
+      var stream = item.stream;
+      try {
+        _sfu!.close();
+        await stream.dispose();
+      } catch (error) {}
+    }));
     _participants.clear();
     _biz?.leave(_uid);
     _biz?.close();

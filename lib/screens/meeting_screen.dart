@@ -147,7 +147,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                         },
                                         child: RTCVideoView(
                                             controller
-                                                .remoteVideos[0].renderer!,
+                                                .remoteVideos[0].rtcRenderer!,
                                             objectFit: RTCVideoViewObjectFit
                                                 .RTCVideoViewObjectFitContain)),
                               ),
@@ -181,7 +181,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                               },
                                               child: RTCVideoView(
                                                   controller
-                                                      .localVideo!.renderer!,
+                                                      .localVideo!.rtcRenderer!,
                                                   objectFit: controller
                                                       .localVideo!.objFit)),
                                         )),
@@ -223,7 +223,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                   onDoubleTap: () => participant
                                                       .switchObjFit(),
                                                   child: RTCVideoView(
-                                                      participant.renderer!,
+                                                      participant.rtcRenderer!,
                                                       objectFit:
                                                           participant.objFit)),
                                             ),
@@ -361,8 +361,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                             TextButton(
                                               child: const Text("Cancel"),
                                               onPressed: () {
-                                                Navigator.of(ctx)
-                                                    .pop();
+                                                Navigator.of(ctx).pop();
                                               },
                                             ),
                                             TextButton(
@@ -373,14 +372,13 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                               ),
                                               onPressed: () async {
                                                 await controller.close();
-                                                Navigator.of(ctx)
-                                                    .pop(true);
+                                                Navigator.of(ctx).pop(true);
                                               },
                                             )
                                           ],
                                         ),
                                       );
-                                      if(res == true){
+                                      if (res == true) {
                                         Navigator.of(context).pop();
                                       }
                                     },
