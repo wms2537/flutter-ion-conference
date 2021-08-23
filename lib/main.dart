@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
         providers: [
           ChangeNotifierProvider<IonController>(
-            create: (_) => IonController()..init(),
+            create: (_) => IonController(),
           ),
         ],
         child: Consumer<IonController>(

@@ -25,7 +25,7 @@ class Participant {
 
   static Future<Participant> create(
       String mid, MediaStream stream, bool remote) async {
-    var renderer = Participant._internal(mid, stream, remote);
+    final renderer = Participant._internal(mid, stream, remote);
     await renderer.setupSrcObject();
     return renderer;
   }
