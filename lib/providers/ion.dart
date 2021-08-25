@@ -119,13 +119,8 @@ class IonController with ChangeNotifier {
     return _prefs;
   }
 
-  Participant? get localVideo {
-    final index = _participants.indexWhere((value) => !value.remote);
-    return index < 0 ? null : _participants[index];
-  }
-
-  List<Participant> get remoteVideos {
-    return _participants.takeWhile((value) => value.remote).toList();
+  List<Participant> get participants {
+    return [..._participants];
   }
 
   Future<void> connect(String name, String sid) async {
@@ -160,7 +155,6 @@ class IonController with ChangeNotifier {
           _sfu!.publish(_localStream!);
           _addParticipant(await Participant.create(
               _localStream!.stream.id, _localStream!.stream, false));
-          print('Stream added');
         } catch (error) {
           print(error);
         }
@@ -257,6 +251,7 @@ class IonController with ChangeNotifier {
 
   _addParticipant(Participant participant) {
     _participants.add(participant);
+    print('Stream added ${_participants.length}');
     notifyListeners();
   }
 
@@ -273,9 +268,9 @@ class IonController with ChangeNotifier {
 
   //Switch speaker/earpiece
   switchSpeaker() {
-    if (localVideo != null) {
+    if (_localStream != null) {
       _speakerOn = !_speakerOn;
-      MediaStreamTrack audioTrack = localVideo!.stream.getAudioTracks()[0];
+      MediaStreamTrack audioTrack = _localStream!.stream.getAudioTracks()[0];
       audioTrack.enableSpeakerphone(_speakerOn);
       print(":::Switch to " + (_speakerOn ? "speaker" : "earpiece") + ":::");
     }
@@ -283,8 +278,9 @@ class IonController with ChangeNotifier {
 
   //Switch local camera
   switchCamera() {
-    if (localVideo != null && localVideo!.stream.getVideoTracks().isNotEmpty) {
-      final track = localVideo?.stream.getVideoTracks()[0];
+    if (_localStream != null &&
+        _localStream!.stream.getVideoTracks().isNotEmpty) {
+      final track = _localStream?.stream.getVideoTracks()[0];
       Helper.switchCamera(track!);
     } else {
       print(":::Unable to switch the camera:::");
@@ -293,10 +289,11 @@ class IonController with ChangeNotifier {
 
   //Open or close local video
   turnCamera() {
-    if (localVideo != null && localVideo!.stream.getVideoTracks().isNotEmpty) {
+    if (_localStream != null &&
+        _localStream!.stream.getVideoTracks().isNotEmpty) {
       var muted = !_cameraOff;
       _cameraOff = muted;
-      localVideo?.stream.getVideoTracks()[0].enabled = !muted;
+      _localStream?.stream.getVideoTracks()[0].enabled = !muted;
       // notifyListeners();
     } else {
       print(":::Unable to operate the camera:::");
@@ -305,10 +302,11 @@ class IonController with ChangeNotifier {
 
   //Open or close local audio
   turnMicrophone() {
-    if (localVideo != null && localVideo!.stream.getAudioTracks().isNotEmpty) {
+    if (_localStream != null &&
+        _localStream!.stream.getAudioTracks().isNotEmpty) {
       var muted = !_microphoneOff;
       _microphoneOff = muted;
-      localVideo?.stream.getAudioTracks()[0].enabled = !muted;
+      _localStream?.stream.getAudioTracks()[0].enabled = !muted;
       print(":::The microphone is ${muted ? 'muted' : 'unmuted'}:::");
       // setState(() {});
     } else {}

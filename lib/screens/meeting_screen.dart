@@ -124,6 +124,11 @@ class _MeetingScreenState extends State<MeetingScreen> {
         child: Scaffold(
           body: Consumer<IonController>(
             builder: (context, controller, _) {
+              final remoteVideos = controller.participants;
+              final index =
+                  remoteVideos.indexWhere((element) => !element.remote);
+              final localVideo =
+                  index < 0 ? null : remoteVideos.removeAt(index);
               return Container(
                 color: Colors.black87,
                 child: Stack(
@@ -135,19 +140,17 @@ class _MeetingScreenState extends State<MeetingScreen> {
                           children: <Widget>[
                             Positioned.fill(
                               child: Container(
-                                child: controller.remoteVideos.isEmpty
+                                child: remoteVideos.isEmpty
                                     ? Image.asset(
                                         'assets/images/loading.jpeg',
                                         fit: BoxFit.cover,
                                       )
                                     : GestureDetector(
                                         onDoubleTap: () {
-                                          controller.remoteVideos[0]
-                                              .switchObjFit();
+                                          remoteVideos[0].switchObjFit();
                                         },
                                         child: RTCVideoView(
-                                            controller
-                                                .remoteVideos[0].rtcRenderer!,
+                                            remoteVideos[0].rtcRenderer!,
                                             objectFit: RTCVideoViewObjectFit
                                                 .RTCVideoViewObjectFitContain)),
                               ),
@@ -156,7 +159,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                               right: 10,
                               top: 48,
                               child: Container(
-                                child: controller.localVideo == null
+                                child: localVideo == null
                                     ? Container()
                                     : SizedBox(
                                         width: localVideoBoxSize(orientation)
@@ -176,14 +179,12 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                 controller.switchCamera();
                                               },
                                               onDoubleTap: () {
-                                                controller.localVideo
-                                                    ?.switchObjFit();
+                                                localVideo.switchObjFit();
                                               },
                                               child: RTCVideoView(
-                                                  controller
-                                                      .localVideo!.rtcRenderer!,
-                                                  objectFit: controller
-                                                      .localVideo!.objFit)),
+                                                  localVideo.rtcRenderer!,
+                                                  objectFit:
+                                                      localVideo.objFit)),
                                         )),
                               ),
                             ),
@@ -194,13 +195,12 @@ class _MeetingScreenState extends State<MeetingScreen> {
                               height: 90,
                               child: Container(
                                 margin: const EdgeInsets.all(6.0),
-                                child: controller.remoteVideos.length <= 1
+                                child: remoteVideos.length <= 1
                                     ? Container()
                                     : ListView(
                                         scrollDirection: Axis.horizontal,
-                                        children: controller.remoteVideos
-                                            .getRange(1,
-                                                controller.remoteVideos.length)
+                                        children: remoteVideos
+                                            .getRange(1, remoteVideos.length)
                                             .map((participant) {
                                           participant.objectFit =
                                               RTCVideoViewObjectFit
@@ -235,9 +235,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                         ),
                       ),
                     ),
-                    (controller.remoteVideos.isEmpty)
-                        ? _buildLoading()
-                        : Container(),
+                    (remoteVideos.isEmpty) ? _buildLoading() : Container(),
                     Positioned(
                       left: 0,
                       right: 0,
