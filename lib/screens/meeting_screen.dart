@@ -125,8 +125,8 @@ class _MeetingScreenState extends State<MeetingScreen> {
           body: Consumer<IonController>(
             builder: (context, controller, _) {
               final remoteVideos = controller.participants;
-              final index = remoteVideos
-                  .indexWhere((element) => !element.webcamStream!.local);
+              final index =
+                  remoteVideos.indexWhere((element) => !element.local);
               final localVideo =
                   index < 0 ? null : remoteVideos.removeAt(index);
               return Container(

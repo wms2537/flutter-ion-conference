@@ -61,9 +61,10 @@ class VideoRendererAdapter {
 class Participant {
   final String uid;
   final String name;
+  final bool local;
   String? mid;
   VideoRendererAdapter? webcamStream;
-  Participant(this.uid, this.name);
+  Participant(this.uid, this.name, this.local);
 }
 
 // void getStats(Client client, MediaStreamTrack track) async {
@@ -159,7 +160,7 @@ class IonController with ChangeNotifier {
                 ..resolution = resolution
                 ..codec = codec);
           _sfu!.publish(_localStream!);
-          final participant = new Participant(_uid, _name!);
+          final participant = new Participant(_uid, _name!, true);
           participant.webcamStream =
               await VideoRendererAdapter.create(_localStream!.stream, true);
           _participants.add(participant);
@@ -182,7 +183,7 @@ class IonController with ChangeNotifier {
           break;
         case PeerState.JOIN:
           state = 'join';
-          _participants.add(new Participant(event.peer.uid, name));
+          _participants.add(new Participant(event.peer.uid, name, false));
           notifyListeners();
           break;
         case PeerState.UPDATE:
