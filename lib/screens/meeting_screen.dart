@@ -125,8 +125,8 @@ class _MeetingScreenState extends State<MeetingScreen> {
           body: Consumer<IonController>(
             builder: (context, controller, _) {
               final remoteVideos = controller.participants;
-              final index =
-                  remoteVideos.indexWhere((element) => !element.remote);
+              final index = remoteVideos
+                  .indexWhere((element) => !element.webcamStream!.local);
               final localVideo =
                   index < 0 ? null : remoteVideos.removeAt(index);
               return Container(
@@ -147,10 +147,14 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                       )
                                     : GestureDetector(
                                         onDoubleTap: () {
-                                          remoteVideos[0].switchObjFit();
+                                          remoteVideos[0]
+                                              .webcamStream!
+                                              .switchObjFit();
                                         },
                                         child: RTCVideoView(
-                                            remoteVideos[0].rtcRenderer!,
+                                            remoteVideos[0]
+                                                .webcamStream!
+                                                .renderer!,
                                             objectFit: RTCVideoViewObjectFit
                                                 .RTCVideoViewObjectFitContain)),
                               ),
@@ -179,12 +183,14 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                 controller.switchCamera();
                                               },
                                               onDoubleTap: () {
-                                                localVideo.switchObjFit();
+                                                localVideo.webcamStream!
+                                                    .switchObjFit();
                                               },
                                               child: RTCVideoView(
-                                                  localVideo.rtcRenderer!,
-                                                  objectFit:
-                                                      localVideo.objFit)),
+                                                  localVideo
+                                                      .webcamStream!.renderer!,
+                                                  objectFit: localVideo
+                                                      .webcamStream!.objFit)),
                                         )),
                               ),
                             ),
@@ -202,7 +208,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                         children: remoteVideos
                                             .getRange(1, remoteVideos.length)
                                             .map((participant) {
-                                          participant.objectFit =
+                                          participant.webcamStream?.objectFit =
                                               RTCVideoViewObjectFit
                                                   .RTCVideoViewObjectFitCover;
                                           return SizedBox(
@@ -216,16 +222,24 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                   width: 1.0,
                                                 ),
                                               ),
-                                              child: GestureDetector(
-                                                  onTap: () => controller
-                                                      .swapParticipant(
-                                                          participant),
-                                                  onDoubleTap: () => participant
-                                                      .switchObjFit(),
-                                                  child: RTCVideoView(
-                                                      participant.rtcRenderer!,
-                                                      objectFit:
-                                                          participant.objFit)),
+                                              child: participant.webcamStream ==
+                                                      null
+                                                  ? Container()
+                                                  : GestureDetector(
+                                                      onTap: () => controller
+                                                          .swapParticipant(
+                                                              participant.uid),
+                                                      onDoubleTap: () =>
+                                                          participant
+                                                              .webcamStream!
+                                                              .switchObjFit(),
+                                                      child: RTCVideoView(
+                                                          participant
+                                                              .webcamStream!
+                                                              .renderer!,
+                                                          objectFit: participant
+                                                              .webcamStream!
+                                                              .objFit)),
                                             ),
                                           );
                                         }).toList()),

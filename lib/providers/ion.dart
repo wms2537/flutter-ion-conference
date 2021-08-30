@@ -8,36 +8,29 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-class Participant {
-  Participant._internal(this.mid, this.stream, this.remote);
-  String mid;
-  bool remote;
-  double? bitrate;
-
+class VideoRendererAdapter {
+  bool local;
+  RTCVideoRenderer? renderer;
   MediaStream stream;
-
-  // String get title => (remote ? 'Remote' : 'Local') + ' ' + id.substring(0, 8);
-
-  RTCVideoRenderer? _renderer;
-  RTCVideoRenderer? get rtcRenderer => _renderer;
   RTCVideoViewObjectFit _objectFit =
       RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
 
-  static Future<Participant> create(
-      String mid, MediaStream stream, bool remote) async {
-    final renderer = Participant._internal(mid, stream, remote);
+  VideoRendererAdapter._internal(this.stream, this.local);
+
+  static Future<VideoRendererAdapter> create(
+      MediaStream stream, bool local) async {
+    var renderer = VideoRendererAdapter._internal(stream, local);
     await renderer.setupSrcObject();
     return renderer;
   }
 
   setupSrcObject() async {
-    if (_renderer == null) {
-      _renderer = RTCVideoRenderer();
-      await _renderer?.initialize();
+    if (renderer == null) {
+      renderer = new RTCVideoRenderer();
+      await renderer?.initialize();
     }
-    print(stream);
-    _renderer?.srcObject = stream;
-    if (!remote) {
+    renderer?.srcObject = stream;
+    if (local) {
       _objectFit = RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
     }
   }
@@ -56,38 +49,46 @@ class Participant {
   }
 
   dispose() async {
-    if (_renderer != null) {
-      print('dispose for texture id ' + _renderer!.textureId.toString());
-      _renderer?.srcObject = null;
-      await _renderer?.dispose();
-      _renderer = null;
+    if (renderer != null) {
+      print('dispose for texture id ' + renderer!.textureId.toString());
+      renderer?.srcObject = null;
+      await renderer?.dispose();
+      renderer = null;
     }
   }
-
-  void getStats(Client client, MediaStreamTrack track) async {
-    dynamic bytesPrev;
-    double? timestampPrev;
-    Timer.periodic(const Duration(seconds: 1), (timer) async {
-      var results = await client.getSubStats(track);
-      for (var report in results) {
-        var now = report.timestamp;
-        if ((report.type == 'ssrc' || report.type == 'inbound-rtp') &&
-            report.values['mediaType'] == 'video') {
-          var bytes = report.values['bytesReceived'];
-          if (timestampPrev != null) {
-            bitrate = (8 *
-                    (WebRTC.platformIsWeb
-                        ? bytes - bytesPrev
-                        : (int.tryParse(bytes)! - int.tryParse(bytesPrev)!))) /
-                (now - timestampPrev!);
-          }
-          bytesPrev = bytes;
-          timestampPrev = now;
-        }
-      }
-    });
-  }
 }
+
+class Participant {
+  final String uid;
+  final String name;
+  String? mid;
+  VideoRendererAdapter? webcamStream;
+  Participant(this.uid, this.name);
+}
+
+// void getStats(Client client, MediaStreamTrack track) async {
+//   dynamic bytesPrev;
+//   double? timestampPrev;
+//   Timer.periodic(const Duration(seconds: 1), (timer) async {
+//     var results = await client.getSubStats(track);
+//     for (var report in results) {
+//       var now = report.timestamp;
+//       if ((report.type == 'ssrc' || report.type == 'inbound-rtp') &&
+//           report.values['mediaType'] == 'video') {
+//         var bytes = report.values['bytesReceived'];
+//         if (timestampPrev != null) {
+//           bitrate = (8 *
+//                   (WebRTC.platformIsWeb
+//                       ? bytes - bytesPrev
+//                       : (int.tryParse(bytes)! - int.tryParse(bytesPrev)!))) /
+//               (now - timestampPrev!);
+//         }
+//         bytesPrev = bytes;
+//         timestampPrev = now;
+//       }
+//     }
+//   });
+// }
 
 class IonController with ChangeNotifier {
   late SharedPreferences _prefs;
@@ -113,6 +114,7 @@ class IonController with ChangeNotifier {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    print(_uid);
   }
 
   SharedPreferences prefs() {
@@ -133,8 +135,12 @@ class IonController with ChangeNotifier {
 
     _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video') {
-        _addParticipant(
-            await Participant.create(stream.id, stream.stream, true));
+        print(track.id);
+        _participants
+                .firstWhere((element) => element.mid == stream.id)
+                .webcamStream =
+            await VideoRendererAdapter.create(stream.stream, false);
+        notifyListeners();
       }
     };
 
@@ -144,7 +150,7 @@ class IonController with ChangeNotifier {
     _biz?.onJoin = (bool success, String reason) async {
       if (success) {
         try {
-          await _sfu!.join(_sid!, _name!);
+          await _sfu!.join(_sid!, _uid);
           var resolution = _prefs.getString('resolution') ?? 'hd';
           var codec = _prefs.getString('codec') ?? 'vp8';
           _localStream = await LocalStream.getUserMedia(
@@ -153,8 +159,11 @@ class IonController with ChangeNotifier {
                 ..resolution = resolution
                 ..codec = codec);
           _sfu!.publish(_localStream!);
-          _addParticipant(await Participant.create(
-              _localStream!.stream.id, _localStream!.stream, false));
+          final participant = new Participant(_uid, _name!);
+          participant.webcamStream =
+              await VideoRendererAdapter.create(_localStream!.stream, true);
+          _participants.add(participant);
+          notifyListeners();
         } catch (error) {
           print(error);
         }
@@ -173,12 +182,16 @@ class IonController with ChangeNotifier {
           break;
         case PeerState.JOIN:
           state = 'join';
+          _participants.add(new Participant(event.peer.uid, name));
+          notifyListeners();
           break;
         case PeerState.UPDATE:
           state = 'upate';
           break;
         case PeerState.LEAVE:
           state = 'leave';
+          _participants.removeWhere((element) => element.uid == event.peer.uid);
+          notifyListeners();
           break;
       }
       print(":::Peer [${event.peer.uid}:$name] $state:::");
@@ -192,13 +205,19 @@ class IonController with ChangeNotifier {
           if (event.streams.isNotEmpty) {
             var mid = event.streams[0].id;
             print(":::stream-add [$mid]:::");
+            print(event.sid);
+            print(event.uid);
+            _participants.firstWhere((element) => element.uid == event.uid)
+              ..mid = mid;
           }
           break;
         case StreamState.REMOVE:
           if (event.streams.isNotEmpty) {
             var mid = event.streams[0].id;
             print(":::stream-remove [$mid]:::");
-            _removeParticipant(mid);
+            _participants.firstWhere((element) => element.mid == mid)
+              ..mid = null
+              ..webcamStream = null;
           }
           break;
       }
@@ -232,10 +251,10 @@ class IonController with ChangeNotifier {
 
   Future<void> close() async {
     await Future.wait(_participants.map((item) async {
-      var stream = item.stream;
+      final stream = item.webcamStream?.stream;
       try {
         _sfu!.close();
-        await stream.dispose();
+        await stream?.dispose();
       } catch (error) {}
     }));
     _participants.clear();
@@ -244,20 +263,18 @@ class IonController with ChangeNotifier {
     _biz = null;
   }
 
-  _removeParticipant(String mid) {
-    _participants.removeWhere((element) => element.mid == mid);
-    notifyListeners();
-  }
+  // _removeParticipant(String uid) {
+  //   _participants.removeWhere((element) => element.uid == uid);
+  //   notifyListeners();
+  // }
 
-  _addParticipant(Participant participant) {
-    _participants.add(participant);
-    print('Stream added ${_participants.length}');
-    notifyListeners();
-  }
+  // _addParticipant(Participant participant) {
+  //   _participants.add(participant);
+  //   notifyListeners();
+  // }
 
-  swapParticipant(adapter) {
-    final index =
-        _participants.indexWhere((element) => element.mid == adapter.mid);
+  swapParticipant(uid) {
+    final index = _participants.indexWhere((element) => element.uid == uid);
     if (index != -1) {
       final temp = _participants.elementAt(index);
       _participants[index] = _participants[0];
