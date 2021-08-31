@@ -154,7 +154,7 @@ class IonController with ChangeNotifier {
           await _sfu!.join(_sid!, _uid);
           var resolution = _prefs.getString('resolution') ?? 'hd';
           var codec = _prefs.getString('codec') ?? 'vp8';
-          _localStream = await LocalStream.getDisplayMedia(
+          _localStream = await LocalStream.getUserMedia(
               constraints: Constraints.defaults
                 ..simulcast = false
                 ..resolution = resolution
