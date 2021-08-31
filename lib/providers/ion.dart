@@ -136,7 +136,7 @@ class IonController with ChangeNotifier {
 
     _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video') {
-        print(track.id);
+        print(track.label);
         _participants
                 .firstWhere((element) => element.mid == stream.id)
                 .webcamStream =
@@ -163,7 +163,7 @@ class IonController with ChangeNotifier {
           final participant = new Participant(_uid, _name!, true);
           participant.webcamStream =
               await VideoRendererAdapter.create(_localStream!.stream, true);
-          _participants.add(participant);
+          _participants.insert(0, participant);
           notifyListeners();
         } catch (error) {
           print(error);
@@ -206,8 +206,6 @@ class IonController with ChangeNotifier {
           if (event.streams.isNotEmpty) {
             var mid = event.streams[0].id;
             print(":::stream-add [$mid]:::");
-            print(event.sid);
-            print(event.uid);
             _participants.firstWhere((element) => element.uid == event.uid)
               ..mid = mid;
           }
@@ -232,7 +230,6 @@ class IonController with ChangeNotifier {
       var sender = info['name'];
       var text = info['text'];
       var uid = info['uid'] as String;
-      //print('message: sender = ' + sender + ', text = ' + text);
       ChatMessage message = ChatMessage(
         uid,
         text,
@@ -263,16 +260,6 @@ class IonController with ChangeNotifier {
     _biz?.close();
     _biz = null;
   }
-
-  // _removeParticipant(String uid) {
-  //   _participants.removeWhere((element) => element.uid == uid);
-  //   notifyListeners();
-  // }
-
-  // _addParticipant(Participant participant) {
-  //   _participants.add(participant);
-  //   notifyListeners();
-  // }
 
   swapParticipant(uid) {
     final index = _participants.indexWhere((element) => element.uid == uid);
@@ -326,7 +313,6 @@ class IonController with ChangeNotifier {
       _microphoneOff = muted;
       _localStream?.stream.getAudioTracks()[0].enabled = !muted;
       print(":::The microphone is ${muted ? 'muted' : 'unmuted'}:::");
-      // setState(() {});
     } else {}
   }
 

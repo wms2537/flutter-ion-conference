@@ -1,71 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_ion_conference/screens/chat_screen.dart';
-import 'package:flutter_ion_conference/screens/home_screen.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:flutter_ion/flutter_ion.dart';
 import 'package:flutter_ion_conference/providers/ion.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-// class VideoRendererAdapter {
-//   String mid;
-//   bool local;
-//   RTCVideoRenderer? renderer;
-//   Object stream;
-//   MediaStream get mediaStream =>
-//       local ? (stream as LocalStream).stream : (stream as RemoteStream).stream;
-//   RTCVideoViewObjectFit _objectFit =
-//       RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
-//   VideoRendererAdapter._internal(this.mid, this.stream, this.local);
-
-//   static Future<VideoRendererAdapter> create(
-//       String mid, Object stream, bool local) async {
-//     var renderer = VideoRendererAdapter._internal(mid, stream, local);
-//     await renderer.setupSrcObject();
-//     return renderer;
-//   }
-
-//   setupSrcObject() async {
-//     if (renderer == null) {
-//       renderer = RTCVideoRenderer();
-//       await renderer?.initialize();
-//     }
-//     renderer?.srcObject = mediaStream;
-//     if (local) {
-//       _objectFit = RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
-//     }
-//   }
-
-//   switchObjFit() {
-//     _objectFit =
-//         (_objectFit == RTCVideoViewObjectFit.RTCVideoViewObjectFitContain)
-//             ? RTCVideoViewObjectFit.RTCVideoViewObjectFitCover
-//             : RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
-//   }
-
-//   RTCVideoViewObjectFit get objFit => _objectFit;
-
-//   set objectFit(RTCVideoViewObjectFit objectFit) {
-//     _objectFit = objectFit;
-//   }
-
-//   Future<void> dispose() async {
-//     if (renderer != null) {
-//       print('dispose for texture id ' + renderer!.textureId.toString());
-//       renderer?.srcObject = null;
-//       await renderer?.dispose();
-//       if (local) {
-//         await (stream as LocalStream).unpublish();
-//         mediaStream.getTracks().forEach((element) {
-//           element.stop();
-//         });
-//         await mediaStream.dispose();
-//       }
-//     }
-//   }
-// }
 
 class BoxSize {
   BoxSize({required this.width, required this.height});
@@ -119,6 +56,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final deviceSize = MediaQuery.of(context).size;
     return OrientationBuilder(builder: (context, orientation) {
       return SafeArea(
         child: Scaffold(
@@ -144,18 +82,20 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                         'assets/images/loading.jpeg',
                                         fit: BoxFit.cover,
                                       )
-                                    : GestureDetector(
-                                        onDoubleTap: () {
-                                          remoteVideos[0]
-                                              .webcamStream!
-                                              .switchObjFit();
-                                        },
-                                        child: RTCVideoView(
-                                            remoteVideos[0]
-                                                .webcamStream!
-                                                .renderer!,
-                                            objectFit: RTCVideoViewObjectFit
-                                                .RTCVideoViewObjectFitContain)),
+                                    : remoteVideos[0].webcamStream == null
+                                        ? Container()
+                                        : GestureDetector(
+                                            onDoubleTap: () {
+                                              remoteVideos[0]
+                                                  .webcamStream!
+                                                  .switchObjFit();
+                                            },
+                                            child: RTCVideoView(
+                                                remoteVideos[0]
+                                                    .webcamStream!
+                                                    .renderer!,
+                                                objectFit: RTCVideoViewObjectFit
+                                                    .RTCVideoViewObjectFitContain)),
                               ),
                             ),
                             Positioned(
@@ -436,7 +376,37 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                   size: 28.0,
                                   color: Colors.white,
                                 ),
-                                onPressed: () {},
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Participants'),
+                                      content: Container(
+                                        width: deviceSize.aspectRatio > 1
+                                            ? deviceSize.width * 0.5
+                                            : deviceSize.width * 0.8,
+                                        height: deviceSize.height * 0.6,
+                                        child: ListView.builder(
+                                          itemCount:
+                                              controller.participants.length,
+                                          itemBuilder: (context, index) =>
+                                              ListTile(
+                                            leading: CircleAvatar(),
+                                            title: Text(controller
+                                                .participants[index].name),
+                                          ),
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(),
+                                          child: const Text('Ok'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
                               //Chat message
                               IconButton(
