@@ -161,6 +161,7 @@ class IonController with ChangeNotifier {
                 ..codec = codec);
           _sfu!.publish(_localStream!);
           final participant = new Participant(_uid, _name!, true);
+          participant.mid = _localStream!.stream.id;
           participant.webcamStream =
               await VideoRendererAdapter.create(_localStream!.stream, true);
           _participants.insert(0, participant);
