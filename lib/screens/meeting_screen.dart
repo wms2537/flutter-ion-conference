@@ -394,6 +394,8 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                             leading: CircleAvatar(),
                                             title: Text(controller
                                                 .participants[index].name),
+                                            subtitle: Text(controller
+                                                .participants[index].uid),
                                           ),
                                         ),
                                       ),

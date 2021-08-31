@@ -136,7 +136,7 @@ class IonController with ChangeNotifier {
 
     _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video') {
-        print(track.label);
+        print('track kind: ${track.label}');
         _participants
                 .firstWhere((element) => element.mid == stream.id)
                 .webcamStream =
@@ -154,7 +154,7 @@ class IonController with ChangeNotifier {
           await _sfu!.join(_sid!, _uid);
           var resolution = _prefs.getString('resolution') ?? 'hd';
           var codec = _prefs.getString('codec') ?? 'vp8';
-          _localStream = await LocalStream.getUserMedia(
+          _localStream = await LocalStream.getDisplayMedia(
               constraints: Constraints.defaults
                 ..simulcast = false
                 ..resolution = resolution
