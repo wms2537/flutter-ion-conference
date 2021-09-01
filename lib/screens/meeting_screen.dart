@@ -395,7 +395,8 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                             title: Text(controller
                                                 .participants[index].name),
                                             subtitle: Text(controller
-                                                .participants[index].uid),
+                                                    .participants[index].mid ??
+                                                'No video'),
                                           ),
                                         ),
                                       ),
