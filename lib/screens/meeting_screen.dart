@@ -21,6 +21,9 @@ class MeetingScreen extends StatefulWidget {
 class _MeetingScreenState extends State<MeetingScreen> {
   final double localWidth = 114.0;
   final double localHeight = 72.0;
+  String? _pinnedVideoMid;
+  String? _pinnedVideoUid;
+  RTCVideoRenderer? _pinnedStreamRenderer;
 
   BoxSize localVideoBoxSize(Orientation orientation) {
     return BoxSize(
@@ -63,9 +66,22 @@ class _MeetingScreenState extends State<MeetingScreen> {
           body: Consumer<IonController>(
             builder: (context, controller, _) {
               final remoteVideos = controller.participants;
-              final index = remoteVideos.indexWhere((element) => element.local);
-              final localVideo =
-                  index < 0 ? null : remoteVideos.removeAt(index);
+
+              if (remoteVideos.length > 0 && _pinnedStreamRenderer == null) {
+                int pinnedVideoIndex = remoteVideos
+                    .indexWhere((element) => element.screenStream != null);
+                if (pinnedVideoIndex < 0) {
+                  pinnedVideoIndex = 0;
+                  _pinnedVideoMid = remoteVideos[pinnedVideoIndex].webcamMid;
+                  _pinnedStreamRenderer =
+                      remoteVideos[pinnedVideoIndex].webcamStream?.renderer;
+                } else {
+                  _pinnedVideoMid = remoteVideos[pinnedVideoIndex].screenMid;
+                  _pinnedStreamRenderer =
+                      remoteVideos[pinnedVideoIndex].screenStream?.renderer;
+                }
+                _pinnedVideoUid = remoteVideos[pinnedVideoIndex].uid;
+              }
               return Container(
                 color: Colors.black87,
                 child: Stack(
@@ -77,60 +93,111 @@ class _MeetingScreenState extends State<MeetingScreen> {
                           children: <Widget>[
                             Positioned.fill(
                               child: Container(
-                                child: remoteVideos.isEmpty
+                                child: _pinnedStreamRenderer == null
                                     ? Image.asset(
                                         'assets/images/loading.jpeg',
                                         fit: BoxFit.cover,
                                       )
-                                    : remoteVideos[0].webcamStream == null
-                                        ? Container()
-                                        : GestureDetector(
-                                            onDoubleTap: () {
-                                              remoteVideos[0]
-                                                  .webcamStream!
-                                                  .switchObjFit();
-                                            },
-                                            child: RTCVideoView(
-                                                remoteVideos[0]
-                                                    .webcamStream!
-                                                    .renderer!,
-                                                objectFit: RTCVideoViewObjectFit
-                                                    .RTCVideoViewObjectFitContain)),
+                                    : GestureDetector(
+                                        onDoubleTap: () {
+                                          remoteVideos[0]
+                                              .webcamStream!
+                                              .switchObjFit();
+                                        },
+                                        child: RTCVideoView(
+                                            _pinnedStreamRenderer!,
+                                            objectFit: RTCVideoViewObjectFit
+                                                .RTCVideoViewObjectFitContain)),
                               ),
                             ),
                             Positioned(
                               right: 10,
                               top: 48,
                               child: Container(
-                                child: localVideo == null
+                                child: controller.localParticipant == null
                                     ? Container()
-                                    : SizedBox(
-                                        width: localVideoBoxSize(orientation)
-                                            .width,
-                                        height: localVideoBoxSize(orientation)
-                                            .height,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.black87,
-                                            border: Border.all(
-                                              color: Colors.white,
-                                              width: 0.5,
+                                    : Column(
+                                        children: [
+                                          if (controller.localParticipant!
+                                                  .webcamStream !=
+                                              null)
+                                            SizedBox(
+                                              width:
+                                                  localVideoBoxSize(orientation)
+                                                      .width,
+                                              height:
+                                                  localVideoBoxSize(orientation)
+                                                      .height,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black87,
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 0.5,
+                                                  ),
+                                                ),
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    controller.switchCamera();
+                                                  },
+                                                  onDoubleTap: () {
+                                                    controller.localParticipant!
+                                                        .webcamStream!
+                                                        .switchObjFit();
+                                                  },
+                                                  child: RTCVideoView(
+                                                      controller
+                                                          .localParticipant!
+                                                          .webcamStream!
+                                                          .renderer!,
+                                                      objectFit: controller
+                                                          .localParticipant!
+                                                          .webcamStream!
+                                                          .objFit),
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                          child: GestureDetector(
-                                              onTap: () {
-                                                controller.switchCamera();
-                                              },
-                                              onDoubleTap: () {
-                                                localVideo.webcamStream!
-                                                    .switchObjFit();
-                                              },
-                                              child: RTCVideoView(
-                                                  localVideo
-                                                      .webcamStream!.renderer!,
-                                                  objectFit: localVideo
-                                                      .webcamStream!.objFit)),
-                                        )),
+                                          if (controller.localParticipant!
+                                                  .screenStream !=
+                                              null)
+                                            SizedBox(
+                                              width:
+                                                  localVideoBoxSize(orientation)
+                                                      .width,
+                                              height:
+                                                  localVideoBoxSize(orientation)
+                                                      .height,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black87,
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 0.5,
+                                                  ),
+                                                ),
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    controller.switchCamera();
+                                                  },
+                                                  onDoubleTap: () {
+                                                    controller.localParticipant!
+                                                        .screenStream!
+                                                        .switchObjFit();
+                                                  },
+                                                  child: RTCVideoView(
+                                                      controller
+                                                          .localParticipant!
+                                                          .screenStream!
+                                                          .renderer!,
+                                                      objectFit: controller
+                                                          .localParticipant!
+                                                          .webcamStream!
+                                                          .objFit),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                               ),
                             ),
                             Positioned(
@@ -150,35 +217,217 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                           participant.webcamStream?.objectFit =
                                               RTCVideoViewObjectFit
                                                   .RTCVideoViewObjectFitCover;
-                                          return SizedBox(
-                                            width: 120,
-                                            height: 90,
+                                          return InkWell(
+                                            onTap: () {}, //TODO
+                                            onDoubleTap: () => participant
+                                                .webcamStream!
+                                                .switchObjFit(),
                                             child: Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.black87,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 1.0,
+                                              decoration:
+                                                  BoxDecoration(boxShadow: [
+                                                BoxShadow(
+                                                    color: Colors.black12,
+                                                    offset: Offset(10, 5),
+                                                    blurRadius: 18),
+                                              ]),
+                                              child: Card(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(15),
+                                                ),
+                                                elevation: 4,
+                                                margin:
+                                                    const EdgeInsets.all(10),
+                                                child: Column(
+                                                  children: <Widget>[
+                                                    Stack(
+                                                      children: <Widget>[
+                                                        ClipRRect(
+                                                          borderRadius:
+                                                              BorderRadius.only(
+                                                            topLeft:
+                                                                Radius.circular(
+                                                                    15),
+                                                            topRight:
+                                                                Radius.circular(
+                                                                    15),
+                                                          ),
+                                                          child: SizedBox(
+                                                            width: 120,
+                                                            height: 90,
+                                                            child: participant
+                                                                            .webcamStream ==
+                                                                        null &&
+                                                                    participant
+                                                                            .screenStream ==
+                                                                        null
+                                                                ? Center(
+                                                                    child: Icon(
+                                                                        Icons
+                                                                            .person),
+                                                                  )
+                                                                : RTCVideoView(
+                                                                    participant
+                                                                            .webcamStream
+                                                                            ?.renderer ??
+                                                                        participant
+                                                                            .screenStream!
+                                                                            .renderer!,
+                                                                    objectFit: participant
+                                                                        .webcamStream!
+                                                                        .objFit),
+                                                          ),
+                                                        ),
+                                                        Positioned(
+                                                          bottom: 20,
+                                                          //left: 10,
+                                                          child: Container(
+                                                            color:
+                                                                Colors.black54,
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              vertical: 5,
+                                                              horizontal: 20,
+                                                            ),
+                                                            child: Text(
+                                                              participant.name,
+                                                              style: TextStyle(
+                                                                fontSize: 26,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .left,
+                                                              softWrap: true,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .fade,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(18),
+                                                        child: Wrap(
+                                                          alignment:
+                                                              WrapAlignment
+                                                                  .spaceEvenly,
+                                                          children: <Widget>[
+                                                            Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceAround,
+                                                              children: <
+                                                                  Widget>[
+                                                                Icon(participant
+                                                                            .webcamStream ==
+                                                                        null
+                                                                    ? Icons
+                                                                        .videocam_off_rounded
+                                                                    : Icons
+                                                                        .videocam_rounded),
+                                                                Icon(participant
+                                                                            .screenStream ==
+                                                                        null
+                                                                    ? Icons
+                                                                        .stop_screen_share
+                                                                    : Icons
+                                                                        .screen_share),
+                                                                IconButton(
+                                                                    onPressed:
+                                                                        () {
+                                                                      if (participant
+                                                                              .screenStream !=
+                                                                          null) {
+                                                                        if (participant.webcamStream !=
+                                                                            null) {
+                                                                          showDialog(
+                                                                            context:
+                                                                                context,
+                                                                            builder: (ctx) =>
+                                                                                AlertDialog(
+                                                                              title: const Text('Choose Pin Content'),
+                                                                              content: const Text('Choose a content to pin on screen.'),
+                                                                              actions: [
+                                                                                TextButton(
+                                                                                  onPressed: () {
+                                                                                    setState(() {
+                                                                                      _pinnedVideoMid = participant.webcamMid;
+                                                                                      _pinnedVideoUid = participant.uid;
+                                                                                      _pinnedStreamRenderer = participant.webcamStream?.renderer;
+                                                                                    });
+                                                                                  },
+                                                                                  child: const Text('Webcam'),
+                                                                                ),
+                                                                                TextButton(
+                                                                                  onPressed: () {
+                                                                                    setState(() {
+                                                                                      _pinnedVideoMid = participant.screenMid;
+                                                                                      _pinnedVideoUid = participant.uid;
+                                                                                      _pinnedStreamRenderer = participant.screenStream?.renderer;
+                                                                                    });
+                                                                                  },
+                                                                                  child: const Text('Screen Share'),
+                                                                                ),
+                                                                              ],
+                                                                            ),
+                                                                          );
+                                                                        } else {
+                                                                          setState(
+                                                                              () {
+                                                                            _pinnedVideoMid =
+                                                                                participant.screenMid;
+                                                                            _pinnedVideoUid =
+                                                                                participant.uid;
+                                                                            _pinnedStreamRenderer =
+                                                                                participant.screenStream?.renderer;
+                                                                          });
+                                                                        }
+                                                                      } else {
+                                                                        if (participant.webcamStream !=
+                                                                            null) {
+                                                                          setState(
+                                                                              () {
+                                                                            _pinnedVideoMid =
+                                                                                participant.webcamMid;
+                                                                            _pinnedVideoUid =
+                                                                                participant.uid;
+                                                                            _pinnedStreamRenderer =
+                                                                                participant.webcamStream?.renderer;
+                                                                          });
+                                                                        } else {
+                                                                          showDialog(
+                                                                            context:
+                                                                                context,
+                                                                            builder: (ctx) =>
+                                                                                AlertDialog(
+                                                                              title: const Text('Nothing to pin!'),
+                                                                              content: const Text('This participant has no webcam video or screen share to be pinned.'),
+                                                                              actions: [
+                                                                                TextButton(
+                                                                                  onPressed: () => Navigator.of(ctx).pop(),
+                                                                                  child: const Text('Ok'),
+                                                                                ),
+                                                                              ],
+                                                                            ),
+                                                                          );
+                                                                        }
+                                                                      }
+                                                                    },
+                                                                    icon: Icon(Icons
+                                                                        .push_pin))
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        )),
+                                                  ],
                                                 ),
                                               ),
-                                              child: participant.webcamStream ==
-                                                      null
-                                                  ? Container()
-                                                  : GestureDetector(
-                                                      onTap: () => controller
-                                                          .swapParticipant(
-                                                              participant.uid),
-                                                      onDoubleTap: () =>
-                                                          participant
-                                                              .webcamStream!
-                                                              .switchObjFit(),
-                                                      child: RTCVideoView(
-                                                          participant
-                                                              .webcamStream!
-                                                              .renderer!,
-                                                          objectFit: participant
-                                                              .webcamStream!
-                                                              .objFit)),
                                             ),
                                           );
                                         }).toList()),
@@ -297,6 +546,27 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                         width: 1,
                                       ),
                                     ),
+                                    child: Icon(
+                                      controller.localParticipant
+                                                  ?.screenStream ==
+                                              null
+                                          ? Icons.screen_share
+                                          : Icons.stop_screen_share,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: controller.enableScreenShare,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 36,
+                                  height: 36,
+                                  child: RawMaterialButton(
+                                    shape: const CircleBorder(
+                                      side: BorderSide(
+                                        color: Colors.white,
+                                        width: 1,
+                                      ),
+                                    ),
                                     child: const Icon(
                                       Icons.phone_disabled,
                                       color: Colors.red,
@@ -388,16 +658,43 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                         height: deviceSize.height * 0.6,
                                         child: ListView.builder(
                                           itemCount:
-                                              controller.participants.length,
+                                              controller.participants.length +
+                                                  1,
                                           itemBuilder: (context, index) =>
-                                              ListTile(
-                                            leading: CircleAvatar(),
-                                            title: Text(controller
-                                                .participants[index].name),
-                                            subtitle: Text(controller
-                                                    .participants[index].mid ??
-                                                'No video'),
-                                          ),
+                                              index == 0
+                                                  ? ListTile(
+                                                      leading: CircleAvatar(),
+                                                      title: Text(controller
+                                                              .localParticipant!
+                                                              .name +
+                                                          '\t(Me)'),
+                                                      subtitle: Text((controller
+                                                                  .localParticipant!
+                                                                  .webcamMid ??
+                                                              'No webcam') +
+                                                          '\n' +
+                                                          (controller
+                                                                  .localParticipant!
+                                                                  .screenMid ??
+                                                              'No screen share')),
+                                                    )
+                                                  : ListTile(
+                                                      leading: CircleAvatar(),
+                                                      title: Text(controller
+                                                          .participants[index]
+                                                          .name),
+                                                      subtitle: Text((controller
+                                                                  .participants[
+                                                                      index]
+                                                                  .webcamMid ??
+                                                              'No webcam') +
+                                                          '\n' +
+                                                          (controller
+                                                                  .participants[
+                                                                      index]
+                                                                  .screenMid ??
+                                                              'No screen share')),
+                                                    ),
                                         ),
                                       ),
                                       actions: [

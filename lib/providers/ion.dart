@@ -62,8 +62,10 @@ class Participant {
   final String uid;
   final String name;
   final bool local;
-  String? mid;
+  String? webcamMid;
+  String? screenMid;
   VideoRendererAdapter? webcamStream;
+  VideoRendererAdapter? screenStream;
   Participant(this.uid, this.name, this.local);
 }
 
@@ -95,13 +97,14 @@ class IonController with ChangeNotifier {
   late SharedPreferences _prefs;
   IonBaseConnector? _connector;
   IonAppBiz? _biz;
-  IonSDKSFU? _sfu;
+  IonSDKSFU? _webcamsfu;
+  IonSDKSFU? _screensfu;
   String? _sid;
   String? _name;
   final String _uid = const Uuid().v4();
   final List<Participant> _participants = [];
   final List<ChatMessage> _messages = [];
-  LocalStream? _localStream;
+  Participant? _localParticipant;
   bool _cameraOff = false;
   bool _microphoneOff = false;
   bool _speakerOn = true;
@@ -110,8 +113,9 @@ class IonController with ChangeNotifier {
   bool get cameraOff => _cameraOff;
   bool get microphoneOff => _microphoneOff;
   bool get speakerOn => _speakerOn;
+  Participant? get localParticipant => localParticipant;
   List<ChatMessage> get messages => [..._messages];
-  bool get isInit => !(_biz == null || _sfu == null || _sid == null);
+  bool get isInit => !(_biz == null || _webcamsfu == null || _sid == null);
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -132,40 +136,39 @@ class IonController with ChangeNotifier {
 
     _connector = IonBaseConnector('https://ion.wmtech.cc:5551');
     _biz = IonAppBiz(_connector!);
-    _sfu = IonSDKSFU(_connector!);
+    _webcamsfu = IonSDKSFU(_connector!);
+    _screensfu = IonSDKSFU(_connector!);
+    _localParticipant = new Participant(_uid, _name!, true);
 
-    _sfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
+    _webcamsfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video') {
         print('track kind: ${track.label}');
-        _participants
-                .firstWhere((element) => element.mid == stream.id)
-                .webcamStream =
-            await VideoRendererAdapter.create(stream.stream, false);
+        int index = _participants
+            .indexWhere((element) => element.webcamMid == stream.id);
+        if (index >= 0) {
+          _participants[index].webcamStream =
+              await VideoRendererAdapter.create(stream.stream, false);
+          return;
+        }
+        index = _participants
+            .indexWhere((element) => element.screenMid == stream.id);
+        if (index >= 0) {
+          _participants[index].screenStream =
+              await VideoRendererAdapter.create(stream.stream, false);
+          return;
+        }
+
         notifyListeners();
       }
     };
 
-    _sfu!.onspeaker = (Map<String, dynamic> list) {
+    _webcamsfu!.onspeaker = (Map<String, dynamic> list) {
       print('onspeaker: $list');
     };
     _biz?.onJoin = (bool success, String reason) async {
       if (success) {
         try {
-          await _sfu!.join(_sid!, _uid);
-          var resolution = _prefs.getString('resolution') ?? 'hd';
-          var codec = _prefs.getString('codec') ?? 'vp8';
-          _localStream = await LocalStream.getUserMedia(
-              constraints: Constraints.defaults
-                ..simulcast = false
-                ..resolution = resolution
-                ..codec = codec);
-          _sfu!.publish(_localStream!);
-          final participant = new Participant(_uid, _name!, true);
-          participant.mid = _localStream!.stream.id;
-          participant.webcamStream =
-              await VideoRendererAdapter.create(_localStream!.stream, true);
-          _participants.insert(0, participant);
-          notifyListeners();
+          await enableCamera();
         } catch (error) {
           print(error);
         }
@@ -207,17 +210,39 @@ class IonController with ChangeNotifier {
           if (event.streams.isNotEmpty) {
             var mid = event.streams[0].id;
             print(":::stream-add [$mid]:::");
-            _participants.firstWhere((element) => element.uid == event.uid)
-              ..mid = mid;
+            final elements = event.uid.split(':');
+            if (elements.first == _uid) return;
+            if (elements.last == 'webcam') {
+              _participants
+                  .firstWhere((element) => element.uid == elements.first)
+                    ..webcamMid = mid;
+            } else if (elements.last == 'screen') {
+              _participants
+                  .firstWhere((element) => element.uid == elements.first)
+                    ..screenMid = mid;
+            }
           }
           break;
         case StreamState.REMOVE:
           if (event.streams.isNotEmpty) {
             var mid = event.streams[0].id;
             print(":::stream-remove [$mid]:::");
-            _participants.firstWhere((element) => element.mid == mid)
-              ..mid = null
-              ..webcamStream = null;
+            int index =
+                _participants.indexWhere((element) => element.webcamMid == mid);
+            if (index >= 0) {
+              _participants[index]
+                ..webcamMid = null
+                ..webcamStream = null;
+              return;
+            }
+            index =
+                _participants.indexWhere((element) => element.screenMid == mid);
+            if (index >= 0) {
+              _participants[index]
+                ..screenMid = null
+                ..screenStream = null;
+              return;
+            }
           }
           break;
       }
@@ -228,23 +253,37 @@ class IonController with ChangeNotifier {
         return;
       }
       var info = msg.data;
-      var sender = info['name'];
-      var text = info['text'];
-      var uid = info['uid'] as String;
-      ChatMessage message = ChatMessage(
-        uid,
-        text,
-        sender,
-        DateFormat.jms().format(DateTime.now()),
-        isMe: uid == _uid,
-      );
+      switch (info['type']) {
+        case 'MESSAGE':
+          var sender = info['name'];
+          var text = info['text'];
+          var uid = info['uid'] as String;
+          ChatMessage message = ChatMessage(
+            uid,
+            text,
+            sender,
+            DateFormat.jms().format(DateTime.now()),
+            isMe: uid == _uid,
+          );
 
-      _messages.insert(0, message);
-      notifyListeners();
+          _messages.insert(0, message);
+          notifyListeners();
+          break;
+        // case 'ADD_SCREENSHARE':
+        //   _participants.firstWhere((element) => element.uid == info['uid'])
+        //     ..screenMid = info['mid'];
+        //   break;
+        // case 'ADD_WEBCAM_STREAM':
+        //   _participants.firstWhere((element) => element.uid == info['uid'])
+        //     ..webcamMid = info['mid'];
+        //   break;
+        default:
+      }
     };
 
     await _biz!.connect();
-    await _sfu!.connect();
+    await _webcamsfu!.connect();
+    await _screensfu!.connect();
     _biz?.join(sid: _sid!, uid: _uid, info: <String, String>{'name': _name!});
   }
 
@@ -252,7 +291,7 @@ class IonController with ChangeNotifier {
     await Future.wait(_participants.map((item) async {
       final stream = item.webcamStream?.stream;
       try {
-        _sfu!.close();
+        _webcamsfu!.close();
         await stream?.dispose();
       } catch (error) {}
     }));
@@ -260,6 +299,53 @@ class IonController with ChangeNotifier {
     _biz?.leave(_uid);
     _biz?.close();
     _biz = null;
+  }
+
+  Future<void> enableCamera() async {
+    await _webcamsfu!.join(_sid!, '$_uid:webcam');
+    var resolution = _prefs.getString('resolution') ?? 'hd';
+    var codec = _prefs.getString('codec') ?? 'vp8';
+    final webcamLocalStream = await LocalStream.getUserMedia(
+        constraints: Constraints.defaults
+          ..simulcast = false
+          ..resolution = resolution
+          ..codec = codec);
+    // _biz?.message(_uid, _sid!, {
+    //   'type': 'ADD_WEBCAM_STREAM',
+    //   'uid': _uid,
+    //   'name': _name,
+    //   'mid': _webcamLocalStream!.stream.id,
+    // });
+    _webcamsfu!.publish(webcamLocalStream);
+
+    _localParticipant!.webcamMid = webcamLocalStream.stream.id;
+    _localParticipant!.webcamStream =
+        await VideoRendererAdapter.create(webcamLocalStream.stream, true);
+    notifyListeners();
+  }
+
+  Future<void> enableScreenShare() async {
+    await _screensfu!.join(_sid!, '$_uid:screen');
+    var resolution = _prefs.getString('resolution') ?? 'hd';
+    var codec = _prefs.getString('codec') ?? 'vp8';
+    final screenLocalStream = await LocalStream.getDisplayMedia(
+        constraints: Constraints.defaults
+          ..simulcast = false
+          ..resolution = resolution
+          ..codec = codec);
+    // _biz?.message(_uid, _sid!, {
+    //   'type': 'ADD_WEBCAM_STREAM',
+    //   'uid': _uid,
+    //   'name': _name,
+    //   'mid': _webcamLocalStream!.stream.id,
+    // });
+    _screensfu!.publish(screenLocalStream);
+    final participant = new Participant(_uid, _name!, true);
+    participant.screenMid = screenLocalStream.stream.id;
+    participant.webcamStream =
+        await VideoRendererAdapter.create(screenLocalStream.stream, true);
+    _participants.insert(0, participant);
+    notifyListeners();
   }
 
   swapParticipant(uid) {
@@ -274,9 +360,10 @@ class IonController with ChangeNotifier {
 
   //Switch speaker/earpiece
   switchSpeaker() {
-    if (_localStream != null) {
+    if (_localParticipant!.webcamStream != null) {
       _speakerOn = !_speakerOn;
-      MediaStreamTrack audioTrack = _localStream!.stream.getAudioTracks()[0];
+      MediaStreamTrack audioTrack =
+          _localParticipant!.webcamStream!.stream.getAudioTracks()[0];
       audioTrack.enableSpeakerphone(_speakerOn);
       print(":::Switch to " + (_speakerOn ? "speaker" : "earpiece") + ":::");
     }
@@ -284,10 +371,10 @@ class IonController with ChangeNotifier {
 
   //Switch local camera
   switchCamera() {
-    if (_localStream != null &&
-        _localStream!.stream.getVideoTracks().isNotEmpty) {
-      final track = _localStream?.stream.getVideoTracks()[0];
-      Helper.switchCamera(track!);
+    if (_localParticipant!.webcamStream != null &&
+        _localParticipant!.webcamStream!.stream.getVideoTracks().isNotEmpty) {
+      final track = _localParticipant!.webcamStream!.stream.getVideoTracks()[0];
+      Helper.switchCamera(track);
     } else {
       print(":::Unable to switch the camera:::");
     }
@@ -295,11 +382,12 @@ class IonController with ChangeNotifier {
 
   //Open or close local video
   turnCamera() {
-    if (_localStream != null &&
-        _localStream!.stream.getVideoTracks().isNotEmpty) {
+    if (_localParticipant!.webcamStream != null &&
+        _localParticipant!.webcamStream!.stream.getVideoTracks().isNotEmpty) {
       var muted = !_cameraOff;
       _cameraOff = muted;
-      _localStream?.stream.getVideoTracks()[0].enabled = !muted;
+      _localParticipant!.webcamStream!.stream.getVideoTracks()[0].enabled =
+          !muted;
       // notifyListeners();
     } else {
       print(":::Unable to operate the camera:::");
@@ -308,17 +396,19 @@ class IonController with ChangeNotifier {
 
   //Open or close local audio
   turnMicrophone() {
-    if (_localStream != null &&
-        _localStream!.stream.getAudioTracks().isNotEmpty) {
+    if (_localParticipant!.webcamStream != null &&
+        _localParticipant!.webcamStream!.stream.getAudioTracks().isNotEmpty) {
       var muted = !_microphoneOff;
       _microphoneOff = muted;
-      _localStream?.stream.getAudioTracks()[0].enabled = !muted;
+      _localParticipant!.webcamStream!.stream.getAudioTracks()[0].enabled =
+          !muted;
       print(":::The microphone is ${muted ? 'muted' : 'unmuted'}:::");
     } else {}
   }
 
   sendMessage(String text) {
     _biz?.message(_uid, _sid!, {
+      'type': 'MESSAGE',
       'uid': _uid,
       'name': _name,
       'text': text,
