@@ -113,7 +113,7 @@ class IonController with ChangeNotifier {
   bool get cameraOff => _cameraOff;
   bool get microphoneOff => _microphoneOff;
   bool get speakerOn => _speakerOn;
-  Participant? get localParticipant => localParticipant;
+  Participant? get localParticipant => _localParticipant;
   List<ChatMessage> get messages => [..._messages];
   bool get isInit => !(_biz == null || _webcamsfu == null || _sid == null);
 
@@ -289,10 +289,11 @@ class IonController with ChangeNotifier {
 
   Future<void> close() async {
     await Future.wait(_participants.map((item) async {
-      final stream = item.webcamStream?.stream;
       try {
         _webcamsfu!.close();
-        await stream?.dispose();
+        _screensfu!.close();
+        await item.webcamStream?.stream.dispose();
+        await item.screenStream?.stream.dispose();
       } catch (error) {}
     }));
     _participants.clear();
