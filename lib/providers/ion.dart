@@ -105,6 +105,8 @@ class IonController with ChangeNotifier {
   final List<Participant> _participants = [];
   final List<ChatMessage> _messages = [];
   Participant? _localParticipant;
+  LocalStream? _webcamLocalStream;
+  LocalStream? _screenLocalStream;
   bool _cameraOff = false;
   bool _microphoneOff = false;
   bool _speakerOn = true;
@@ -148,6 +150,7 @@ class IonController with ChangeNotifier {
         if (index >= 0) {
           _participants[index].webcamStream =
               await VideoRendererAdapter.create(stream.stream, false);
+          notifyListeners();
           return;
         }
         index = _participants
@@ -155,10 +158,10 @@ class IonController with ChangeNotifier {
         if (index >= 0) {
           _participants[index].screenStream =
               await VideoRendererAdapter.create(stream.stream, false);
+          notifyListeners();
           return;
         }
-
-        notifyListeners();
+        print('Stream not registered');
       }
     };
 
@@ -306,7 +309,7 @@ class IonController with ChangeNotifier {
     await _webcamsfu!.join(_sid!, '$_uid:webcam');
     var resolution = _prefs.getString('resolution') ?? 'hd';
     var codec = _prefs.getString('codec') ?? 'vp8';
-    final webcamLocalStream = await LocalStream.getUserMedia(
+    _webcamLocalStream = await LocalStream.getUserMedia(
         constraints: Constraints.defaults
           ..simulcast = false
           ..resolution = resolution
@@ -317,11 +320,11 @@ class IonController with ChangeNotifier {
     //   'name': _name,
     //   'mid': _webcamLocalStream!.stream.id,
     // });
-    _webcamsfu!.publish(webcamLocalStream);
+    _webcamsfu!.publish(_webcamLocalStream!);
 
-    _localParticipant!.webcamMid = webcamLocalStream.stream.id;
+    _localParticipant!.webcamMid = _webcamLocalStream!.stream.id;
     _localParticipant!.webcamStream =
-        await VideoRendererAdapter.create(webcamLocalStream.stream, true);
+        await VideoRendererAdapter.create(_webcamLocalStream!.stream, true);
     notifyListeners();
   }
 
@@ -329,7 +332,7 @@ class IonController with ChangeNotifier {
     await _screensfu!.join(_sid!, '$_uid:screen');
     var resolution = _prefs.getString('resolution') ?? 'hd';
     var codec = _prefs.getString('codec') ?? 'vp8';
-    final screenLocalStream = await LocalStream.getDisplayMedia(
+    _screenLocalStream = await LocalStream.getDisplayMedia(
         constraints: Constraints.defaults
           ..simulcast = false
           ..resolution = resolution
@@ -340,12 +343,10 @@ class IonController with ChangeNotifier {
     //   'name': _name,
     //   'mid': _webcamLocalStream!.stream.id,
     // });
-    _screensfu!.publish(screenLocalStream);
-    final participant = new Participant(_uid, _name!, true);
-    participant.screenMid = screenLocalStream.stream.id;
-    participant.webcamStream =
-        await VideoRendererAdapter.create(screenLocalStream.stream, true);
-    _participants.insert(0, participant);
+    _screensfu!.publish(_screenLocalStream!);
+    _localParticipant!.screenMid = _screenLocalStream!.stream.id;
+    _localParticipant!.webcamStream =
+        await VideoRendererAdapter.create(_screenLocalStream!.stream, true);
     notifyListeners();
   }
 

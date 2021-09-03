@@ -204,15 +204,15 @@ class _MeetingScreenState extends State<MeetingScreen> {
                               left: 0,
                               right: 0,
                               bottom: 48,
-                              height: 90,
+                              height: 180,
                               child: Container(
                                 margin: const EdgeInsets.all(6.0),
-                                child: remoteVideos.length <= 1
+                                child: remoteVideos.length <= 0
                                     ? Container()
                                     : ListView(
                                         scrollDirection: Axis.horizontal,
                                         children: remoteVideos
-                                            .getRange(1, remoteVideos.length)
+                                            .getRange(0, remoteVideos.length)
                                             .map((participant) {
                                           participant.webcamStream?.objectFit =
                                               RTCVideoViewObjectFit
@@ -240,21 +240,20 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                     const EdgeInsets.all(10),
                                                 child: Column(
                                                   children: <Widget>[
-                                                    Stack(
-                                                      children: <Widget>[
-                                                        ClipRRect(
-                                                          borderRadius:
-                                                              BorderRadius.only(
-                                                            topLeft:
-                                                                Radius.circular(
-                                                                    15),
-                                                            topRight:
-                                                                Radius.circular(
-                                                                    15),
-                                                          ),
-                                                          child: SizedBox(
-                                                            width: 120,
-                                                            height: 90,
+                                                    SizedBox(
+                                                      width: 120,
+                                                      height: 90,
+                                                      child: Stack(
+                                                        children: <Widget>[
+                                                          ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .only(
+                                                              topLeft: Radius
+                                                                  .circular(15),
+                                                              topRight: Radius
+                                                                  .circular(15),
+                                                            ),
                                                             child: participant
                                                                             .webcamStream ==
                                                                         null &&
@@ -277,42 +276,43 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                                         .webcamStream!
                                                                         .objFit),
                                                           ),
-                                                        ),
-                                                        Positioned(
-                                                          bottom: 20,
-                                                          //left: 10,
-                                                          child: Container(
-                                                            color:
-                                                                Colors.black54,
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .symmetric(
-                                                              vertical: 5,
-                                                              horizontal: 20,
-                                                            ),
-                                                            child: Text(
-                                                              participant.name,
-                                                              style: TextStyle(
-                                                                fontSize: 26,
-                                                                color: Colors
-                                                                    .white,
+                                                          Positioned(
+                                                            bottom: 0,
+                                                            //left: 10,
+                                                            child: Container(
+                                                              color: Colors
+                                                                  .black54,
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                vertical: 5,
+                                                                horizontal: 20,
                                                               ),
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .left,
-                                                              softWrap: true,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .fade,
+                                                              child: Text(
+                                                                participant
+                                                                    .name,
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .left,
+                                                                softWrap: true,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .fade,
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
+                                                        ],
+                                                      ),
                                                     ),
                                                     Padding(
                                                         padding:
                                                             const EdgeInsets
-                                                                .all(18),
+                                                                .all(8),
                                                         child: Wrap(
                                                           alignment:
                                                               WrapAlignment
