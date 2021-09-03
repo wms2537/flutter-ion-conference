@@ -291,10 +291,18 @@ class IonController with ChangeNotifier {
   }
 
   Future<void> close() async {
+    if (_webcamLocalStream != null) {
+      await _webcamLocalStream!.unpublish();
+    }
+    if (_screenLocalStream != null) {
+      await _screenLocalStream!.unpublish();
+    }
+    _webcamsfu!.close();
+    _screensfu!.close();
+    await _localParticipant?.webcamStream?.stream.dispose();
+    await _localParticipant?.screenStream?.stream.dispose();
     await Future.wait(_participants.map((item) async {
       try {
-        _webcamsfu!.close();
-        _screensfu!.close();
         await item.webcamStream?.stream.dispose();
         await item.screenStream?.stream.dispose();
       } catch (error) {}
@@ -303,6 +311,9 @@ class IonController with ChangeNotifier {
     _biz?.leave(_uid);
     _biz?.close();
     _biz = null;
+    _screenLocalStream = null;
+    _webcamLocalStream = null;
+    _localParticipant = null;
   }
 
   Future<void> enableCamera() async {

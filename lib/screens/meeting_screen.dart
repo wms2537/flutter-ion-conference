@@ -681,17 +681,18 @@ class _MeetingScreenState extends State<MeetingScreen> {
                                                   : ListTile(
                                                       leading: CircleAvatar(),
                                                       title: Text(controller
-                                                          .participants[index]
+                                                          .participants[
+                                                              index - 1]
                                                           .name),
                                                       subtitle: Text((controller
                                                                   .participants[
-                                                                      index]
+                                                                      index - 1]
                                                                   .webcamMid ??
                                                               'No webcam') +
                                                           '\n' +
                                                           (controller
                                                                   .participants[
-                                                                      index]
+                                                                      index - 1]
                                                                   .screenMid ??
                                                               'No screen share')),
                                                     ),
