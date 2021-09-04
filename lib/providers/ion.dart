@@ -122,7 +122,7 @@ class IonController with ChangeNotifier {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
-    print(_uid);
+    print('[INFO] $_uid');
   }
 
   SharedPreferences prefs() {
@@ -145,7 +145,7 @@ class IonController with ChangeNotifier {
 
     _webcamsfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video') {
-        print('track kind: ${track.label}');
+        print('[INFO][ontrack] track kind: ${track.label}');
         int index = _participants
             .indexWhere((element) => element.webcamMid == stream.id);
         if (index >= 0) {
@@ -162,6 +162,8 @@ class IonController with ChangeNotifier {
           notifyListeners();
           return;
         }
+        print(
+            '[INFO][ontrack] remote stream [${stream.id}] not registered, adding to waiting stream list');
         _waitingStreams[stream.id] = stream.stream;
       }
     };
@@ -213,8 +215,8 @@ class IonController with ChangeNotifier {
         case StreamState.ADD:
           if (event.streams.isNotEmpty) {
             var mid = event.streams[0].id;
-            print(":::stream-add [$mid]:::");
             final elements = event.uid.split(':');
+            print("[INFO][onStreamEvent] stream-add [$mid] [$elements]:::");
             if (elements.first == _uid) return;
             if (elements.last == 'webcam') {
               _participants
@@ -224,6 +226,12 @@ class IonController with ChangeNotifier {
                         ? await VideoRendererAdapter.create(
                             _waitingStreams[mid]!, false)
                         : null;
+              print('[INFO] webcam stream registered');
+              if (_waitingStreams[mid] != null) {
+                _waitingStreams.remove(mid);
+                notifyListeners();
+                print('[INFO] remote stream added');
+              }
             } else if (elements.last == 'screen') {
               _participants
                   .firstWhere((element) => element.uid == elements.first)
@@ -232,6 +240,11 @@ class IonController with ChangeNotifier {
                         ? await VideoRendererAdapter.create(
                             _waitingStreams[mid]!, false)
                         : null;
+              print('[INFO] screen stream registered');
+              if (_waitingStreams[mid] != null) {
+                _waitingStreams.remove(mid);
+                notifyListeners();
+              }
             }
           }
           break;
@@ -245,7 +258,6 @@ class IonController with ChangeNotifier {
               _participants[index]
                 ..webcamMid = null
                 ..webcamStream = null;
-              notifyListeners();
               return;
             }
             index =
@@ -254,7 +266,6 @@ class IonController with ChangeNotifier {
               _participants[index]
                 ..screenMid = null
                 ..screenStream = null;
-              notifyListeners();
               return;
             }
           }

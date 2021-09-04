@@ -66,7 +66,17 @@ class _MeetingScreenState extends State<MeetingScreen> {
           body: Consumer<IonController>(
             builder: (context, controller, _) {
               final remoteVideos = controller.participants;
-
+              if (_pinnedVideoMid != null &&
+                  remoteVideos.indexWhere(
+                          (element) => element.webcamMid == _pinnedVideoMid) <
+                      0 &&
+                  remoteVideos.indexWhere(
+                          (element) => element.screenMid == _pinnedVideoMid) <
+                      0) {
+                _pinnedStreamRenderer = null;
+                _pinnedVideoMid = null;
+                _pinnedVideoUid = null;
+              }
               if (remoteVideos.length > 0 && _pinnedStreamRenderer == null) {
                 int pinnedVideoIndex = remoteVideos
                     .indexWhere((element) => element.screenStream != null);
