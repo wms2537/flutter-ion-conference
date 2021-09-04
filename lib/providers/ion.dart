@@ -107,6 +107,7 @@ class IonController with ChangeNotifier {
   Participant? _localParticipant;
   LocalStream? _webcamLocalStream;
   LocalStream? _screenLocalStream;
+  Map<String, MediaStream> _waitingStreams = {};
   bool _cameraOff = false;
   bool _microphoneOff = false;
   bool _speakerOn = true;
@@ -161,7 +162,7 @@ class IonController with ChangeNotifier {
           notifyListeners();
           return;
         }
-        print('Stream not registered');
+        _waitingStreams[stream.id] = stream.stream;
       }
     };
 
@@ -218,11 +219,19 @@ class IonController with ChangeNotifier {
             if (elements.last == 'webcam') {
               _participants
                   .firstWhere((element) => element.uid == elements.first)
-                    ..webcamMid = mid;
+                    ..webcamMid = mid
+                    ..webcamStream = _waitingStreams[mid] != null
+                        ? await VideoRendererAdapter.create(
+                            _waitingStreams[mid]!, false)
+                        : null;
             } else if (elements.last == 'screen') {
               _participants
                   .firstWhere((element) => element.uid == elements.first)
-                    ..screenMid = mid;
+                    ..screenMid = mid
+                    ..screenStream = _waitingStreams[mid] != null
+                        ? await VideoRendererAdapter.create(
+                            _waitingStreams[mid]!, false)
+                        : null;
             }
           }
           break;
