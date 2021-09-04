@@ -245,6 +245,7 @@ class IonController with ChangeNotifier {
               _participants[index]
                 ..webcamMid = null
                 ..webcamStream = null;
+              notifyListeners();
               return;
             }
             index =
@@ -253,6 +254,7 @@ class IonController with ChangeNotifier {
               _participants[index]
                 ..screenMid = null
                 ..screenStream = null;
+              notifyListeners();
               return;
             }
           }
