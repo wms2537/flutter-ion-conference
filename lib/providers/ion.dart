@@ -145,7 +145,8 @@ class IonController with ChangeNotifier {
 
     _webcamsfu!.ontrack = (MediaStreamTrack track, RemoteStream stream) async {
       if (track.kind == 'video') {
-        print('[INFO][ontrack] track kind: ${track.label}');
+        print(
+            '[INFO][ontrack] track kind: ${track.label} ${stream.stream.ownerTag}');
         int index = _participants
             .indexWhere((element) => element.webcamMid == stream.id);
         if (index >= 0) {
@@ -246,6 +247,20 @@ class IonController with ChangeNotifier {
                 notifyListeners();
               }
             }
+            if (_webcamLocalStream != null)
+              _biz?.message(_uid, _sid!, {
+                'type': 'ADD_WEBCAM_STREAM',
+                'uid': _uid,
+                'name': _name,
+                'mid': _webcamLocalStream!.stream.id,
+              });
+            if (_screenLocalStream != null)
+              _biz?.message(_uid, _sid!, {
+                'type': 'ADD_SCREEN_STREAM',
+                'uid': _uid,
+                'name': _name,
+                'mid': _screenLocalStream!.stream.id,
+              });
           }
           break;
         case StreamState.REMOVE:
@@ -294,14 +309,14 @@ class IonController with ChangeNotifier {
           _messages.insert(0, message);
           notifyListeners();
           break;
-        // case 'ADD_SCREENSHARE':
-        //   _participants.firstWhere((element) => element.uid == info['uid'])
-        //     ..screenMid = info['mid'];
-        //   break;
-        // case 'ADD_WEBCAM_STREAM':
-        //   _participants.firstWhere((element) => element.uid == info['uid'])
-        //     ..webcamMid = info['mid'];
-        //   break;
+        case 'ADD_SCREENSHARE':
+          _participants.firstWhere((element) => element.uid == info['uid'])
+            ..screenMid = info['mid'];
+          break;
+        case 'ADD_WEBCAM_STREAM':
+          _participants.firstWhere((element) => element.uid == info['uid'])
+            ..webcamMid = info['mid'];
+          break;
         default:
       }
     };
@@ -320,7 +335,7 @@ class IonController with ChangeNotifier {
       await _screenLocalStream!.unpublish();
     }
     _webcamsfu!.close();
-    _screensfu!.close();
+    if (_screensfu!.connected) _screensfu!.close();
     await _localParticipant?.webcamStream?.stream.dispose();
     await _localParticipant?.screenStream?.stream.dispose();
     await Future.wait(_participants.map((item) async {
