@@ -384,12 +384,6 @@ class IonController with ChangeNotifier {
           ..simulcast = false
           ..resolution = resolution
           ..codec = codec);
-    // _biz?.message(_uid, _sid!, {
-    //   'type': 'ADD_WEBCAM_STREAM',
-    //   'uid': _uid,
-    //   'name': _name,
-    //   'mid': _webcamLocalStream!.stream.id,
-    // });
     _webcamsfu!.publish(_webcamLocalStream!);
 
     _localParticipant!.webcamMid = _webcamLocalStream!.stream.id;
@@ -408,15 +402,9 @@ class IonController with ChangeNotifier {
           ..simulcast = false
           ..resolution = resolution
           ..codec = codec);
-    // _biz?.message(_uid, _sid!, {
-    //   'type': 'ADD_WEBCAM_STREAM',
-    //   'uid': _uid,
-    //   'name': _name,
-    //   'mid': _webcamLocalStream!.stream.id,
-    // });
     _screensfu!.publish(_screenLocalStream!);
     _localParticipant!.screenMid = _screenLocalStream!.stream.id;
-    _localParticipant!.webcamStream =
+    _localParticipant!.screenStream =
         await VideoRendererAdapter.create(_screenLocalStream!.stream, true);
     notifyListeners();
   }
