@@ -327,14 +327,14 @@ class IonController with ChangeNotifier {
           break;
         case 'ADD_WEBCAM_STREAM':
           _participants.firstWhere((element) => element.uid == info['uid'])
-            ..webcamMid = info['uid']
-            ..webcamStream = _waitingStreams[info['uid']] != null
+            ..webcamMid = info['mid']
+            ..webcamStream = _waitingStreams[info['mid']] != null
                 ? await VideoRendererAdapter.create(
-                    _waitingStreams[info['uid']]!, false)
+                    _waitingStreams[info['mid']]!, false)
                 : null;
           print('[INFO] webcam stream registered');
-          if (_waitingStreams[info['uid']] != null) {
-            _waitingStreams.remove(info['uid']);
+          if (_waitingStreams[info['mid']] != null) {
+            _waitingStreams.remove(info['mid']);
             notifyListeners();
             print('[INFO] remote stream added');
           }
