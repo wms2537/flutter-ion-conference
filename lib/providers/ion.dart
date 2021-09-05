@@ -308,7 +308,7 @@ class IonController with ChangeNotifier {
 
     await _biz!.connect();
     await _webcamsfu!.connect();
-    await _screensfu!.connect();
+
     _biz?.join(sid: _sid!, uid: _uid, info: <String, String>{'name': _name!});
   }
 
@@ -362,6 +362,7 @@ class IonController with ChangeNotifier {
   }
 
   Future<void> enableScreenShare() async {
+    await _screensfu!.connect();
     await _screensfu!.join(_sid!, '$_uid:screen');
     var resolution = _prefs.getString('resolution') ?? 'hd';
     var codec = _prefs.getString('codec') ?? 'vp8';
