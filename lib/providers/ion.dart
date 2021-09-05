@@ -252,6 +252,7 @@ class IonController with ChangeNotifier {
                 'type': 'ADD_WEBCAM_STREAM',
                 'uid': _uid,
                 'name': _name,
+                'to': elements.first,
                 'mid': _webcamLocalStream!.stream.id,
               });
             if (_screenLocalStream != null)
@@ -259,6 +260,7 @@ class IonController with ChangeNotifier {
                 'type': 'ADD_SCREEN_STREAM',
                 'uid': _uid,
                 'name': _name,
+                'to': elements.first,
                 'mid': _screenLocalStream!.stream.id,
               });
           }
@@ -293,6 +295,7 @@ class IonController with ChangeNotifier {
         return;
       }
       var info = msg.data;
+      if (info['to'] != null && info['to'] != _uid) return;
       switch (info['type']) {
         case 'MESSAGE':
           var sender = info['name'];
@@ -311,11 +314,30 @@ class IonController with ChangeNotifier {
           break;
         case 'ADD_SCREENSHARE':
           _participants.firstWhere((element) => element.uid == info['uid'])
-            ..screenMid = info['mid'];
+            ..screenMid = info['mid']
+            ..screenStream = _waitingStreams[info['mid']] != null
+                ? await VideoRendererAdapter.create(
+                    _waitingStreams[info['mid']]!, false)
+                : null;
+          print('[INFO] screen stream registered');
+          if (_waitingStreams[info['mid']] != null) {
+            _waitingStreams.remove(info['mid']);
+            notifyListeners();
+          }
           break;
         case 'ADD_WEBCAM_STREAM':
           _participants.firstWhere((element) => element.uid == info['uid'])
-            ..webcamMid = info['mid'];
+            ..webcamMid = info['uid']
+            ..webcamStream = _waitingStreams[info['uid']] != null
+                ? await VideoRendererAdapter.create(
+                    _waitingStreams[info['uid']]!, false)
+                : null;
+          print('[INFO] webcam stream registered');
+          if (_waitingStreams[info['uid']] != null) {
+            _waitingStreams.remove(info['uid']);
+            notifyListeners();
+            print('[INFO] remote stream added');
+          }
           break;
         default:
       }
